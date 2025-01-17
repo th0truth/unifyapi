@@ -2,7 +2,10 @@ from fastapi.security import OAuth2PasswordRequestForm
 from fastapi import APIRouter, Header, Depends
 from typing import Annotated
 
-from core.security.jwt import encode_token, decode_token
+from core.security.jwt import (
+    encode_token,
+    decode_token,
+    refresh_token)
 from core.schemas.user import UserDB
 from core.schemas.token import Token
 from core import exceptions
@@ -12,18 +15,25 @@ router = APIRouter(tags=["Authentication"])
 
 @router.post("/login", response_model=Token)
 async def login_access_token(form: Annotated[OAuth2PasswordRequestForm, Depends()]):
+    """
+        Login by user credentials.
+    """
     user = await crud.authenticate_user(edbo_id=int(form.username), plain_pwd=form.password)
-    access_token = encode_token(payload={"sub": str(user["edbo_id"])})
-    return Token(access_token=access_token, token_type="bearer")
+    token = encode_token(payload={"sub": str(user["edbo_id"])})
+    return Token(access_token=token)
 
-@router.post("/token")
+@router.post("/token", response_model=Token)
 async def auth_token(token: Annotated[str, Header()]):
-    edbo_id = decode_token(token=token).get("sub")
+    """
+        Login by access token.
+    """
+    payload = decode_token(token=token)
+    edbo_id = payload.get("sub")
     user = await UserDB.find_by({"edbo_id": int(edbo_id)})
     if not user:
         raise exceptions.UNAUTHORIZED(
             detail="Couldn't validate credentials",
             headers={"WWW-Authenticate": "Bearer"}
         )
-    raise exceptions.OK(
-        detail="Successful Authentication")
+    token = refresh_token(payload=payload)
+    return Token(access_token=token)
