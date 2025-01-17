@@ -33,4 +33,4 @@ def decode_token(
 def refresh_token(payload: dict) -> str:
     payload.update({"exp": datetime.now(tz=timezone.utc) + timedelta(minutes=settings.JWT_ALGORITHM)})
     return jwt.encode(
-        payload=payload, key=settings.PRIVATE_KEY_PEM, algorithm=settings.JWT_ALGORITHM)
+        payload=payload, key=settings.PRIVATE_KEY_PEM, algorithm=settings.JWT_EXPIRE_MIN)
