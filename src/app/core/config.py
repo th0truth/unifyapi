@@ -2,7 +2,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.backends import default_backend
-    
+from typing import Dict, Any
+
 private_key = rsa.generate_private_key(
     public_exponent=65537,
     key_size=2048,
@@ -35,7 +36,13 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "RS256"
     JWT_EXPIRE_MIN: int | float = 60
     JWT_RERESH_MIN: int | float = 120
-    
+
+    scopes: Dict[str, Any] = {
+        "students": "Read students",
+        "teachers": "teacher",
+        "admin": "Administrator"
+    }
+
     PRIVATE_KEY_PEM: bytes = private_key.private_bytes(
         encoding=serialization.Encoding.PEM,
         format=serialization.PrivateFormat.PKCS8,

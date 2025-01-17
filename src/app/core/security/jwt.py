@@ -30,8 +30,7 @@ def decode_token(
             detail="Couldn't validate credentials",
             headers={"WWW-Authenticate": "Bearer"})
     
-def refresh_token(token: str) -> str:
-    payload = decode_token(token=token)
+def refresh_token(payload: dict) -> str:
     payload.update(
         {"exp": datetime.now(tz=timezone.utc) + timedelta(minutes=settings.JWT_RERESH_MIN)})
     return encode_token(payload=payload)
