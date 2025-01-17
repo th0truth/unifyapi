@@ -35,7 +35,7 @@ class Settings(BaseSettings):
 
     JWT_ALGORITHM: str = "RS256"
     JWT_EXPIRE_MIN: int | float
-    JWT_RERESH_MIN: int | float
+    JWT_REFRESH_MIN: int | float
 
     scopes: Dict[str, Any] = {
         "students": "Read students",
