@@ -1,10 +1,12 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 import uvicorn
 
 from core.config import settings
 from core.db.database import MongoDB
 from api.api import api_router
+
+from core.security.jwt import decode_token
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -25,7 +27,7 @@ app.include_router(api_router, prefix=settings.API_V1_STR)
 if __name__ == "__main__":    
     uvicorn.run(
         app="main:app",
-        host="0.0.0.0",
-        port=10000,
+        host="127.0.0.0",
+        port=8000,
         reload=True
     )

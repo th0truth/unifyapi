@@ -3,20 +3,19 @@ from typing import Literal
 
 from core.db.database import MongoDB
 
-class UserPriviliges(BaseModel):
-    pass
-
+ROLE = Literal["student", "teacher", "admin"] 
 
 class UserCreate(BaseModel):
-    role: Literal["student", "teacher", "admin"] 
+    role: ROLE 
     edbo_id: int
     name: str
     email: EmailStr | None = None
     password: str = Field(..., min_length=8, max_length=16)
 
 class UserDelete(BaseModel):
+    role: ROLE
     edbo_id: int
 
 class UserDB(MongoDB):
-    DATABASE_NAME = "college"
-    COLLECTION_NAME = "ipz12"
+    DATABASE_NAME: str
+    COLLECTION_NAME: str

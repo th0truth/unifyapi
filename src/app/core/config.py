@@ -33,7 +33,8 @@ class Settings(BaseSettings):
     # Authorization
 
     JWT_ALGORITHM: str = "RS256"
-    JWT_EXPIRE_MIN: int | float = 1   
+    JWT_EXPIRE_MIN: int | float = 60
+    JWT_RERESH_MIN: int | float = 120
     
     PRIVATE_KEY_PEM: bytes = private_key.private_bytes(
         encoding=serialization.Encoding.PEM,

@@ -1,7 +1,5 @@
 from pydantic import BaseModel, Field, EmailStr
 
-from core.db.database import MongoDB
-
 class StudentCreate(BaseModel):
     edbo_id: int
     name: str
@@ -19,7 +17,3 @@ class StudentPrivate(BaseModel):
     name: str
     email: EmailStr | None = None
     password: str
-
-class StudentDB(MongoDB):
-    DATABASE_NAME = "college"
-    COLLECTION_NAME = "ipz12"

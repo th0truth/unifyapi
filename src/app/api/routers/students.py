@@ -1,18 +1,17 @@
-from typing import (
-    Annotated,
-    List,
-    Dict,
-    Any
-)
+from typing import Annotated, List, Dict, Any
 from fastapi import APIRouter, Path, Depends
+from core.schemas.user import UserDB
 from core.schemas.student import (
     StudentPublic,
-    StudentPrivate,
+    StudentPrivate
 )
-
-import crud
 import api.deps as deps
+import crud
+
 router = APIRouter(tags=["Students"])
+
+UserDB.DATABASE_NAME = "college"
+UserDB.COLLECTION_NAME = "ipz12"
 
 @router.get("/read-students", response_model=List[StudentPublic])
 async def read_students(skip: int = 0, length: int | None = None) -> List[Dict[str, Any]]:
