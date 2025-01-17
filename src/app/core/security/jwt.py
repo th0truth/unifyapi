@@ -32,5 +32,5 @@ def decode_token(
     
 def refresh_token(payload: dict) -> str:
     payload.update(
-        {"exp": datetime.now(tz=timezone.utc) + timedelta(minutes=settings.JWT_RERESH_MIN)})
+        {"exp": datetime.now(tz=timezone.utc) + timedelta(minutes=settings.JWT_REFRESH_MIN)})
     return encode_token(payload=payload)
