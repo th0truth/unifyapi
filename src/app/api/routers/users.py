@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Security
+from fastapi import APIRouter, Security, Depends
 from core.schemas.user import (
     UserCreate,
-    UserDelete
+    UserDelete,
+    UserPrivate
 )
 
 from typing import Annotated
@@ -24,3 +25,11 @@ async def delete_user(user: Annotated[UserDelete, Security(deps.get_current_user
         Delete an exiting user account.
     """
     return await crud.delete_user(user)
+
+@router.get("/me", response_model=UserPrivate)
+async def get_current_user(
+    user: Annotated[UserPrivate, Depends(deps.get_current_user)]):
+    """
+        Read the user's private data.
+    """
+    return user

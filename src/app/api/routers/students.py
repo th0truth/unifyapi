@@ -1,5 +1,5 @@
 from typing import Annotated, List, Dict, Any
-from fastapi import APIRouter, Path, Security
+from fastapi import APIRouter, Security
 from core.schemas.user import UserDB
 from core.schemas.student import (
     StudentPublic,
@@ -27,10 +27,3 @@ async def read_student(edbo_id: Annotated[int, Security(deps.get_current_user, s
     """
     return await crud.read_user(edbo_id=edbo_id)
 
-@router.get("/me", response_model=StudentPrivate)
-async def get_current_student(
-    user: Annotated[StudentPrivate, Security(deps.get_current_user, scopes=["students"])]) -> StudentPrivate:
-    """
-        Read a student's private data.
-    """
-    return user

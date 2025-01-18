@@ -16,6 +16,12 @@ class UserDelete(BaseModel):
     role: ROLE
     edbo_id: int
 
+class UserPrivate(BaseModel):
+    edbo_id: int
+    name: str
+    email: EmailStr | None = None
+    password: str
+
 class UserDB(MongoDB):
     DATABASE_NAME: str
     COLLECTION_NAME: str

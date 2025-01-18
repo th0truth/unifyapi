@@ -37,3 +37,7 @@ async def auth_token(token: Annotated[str, Header()]):
         )
     token = refresh_token(payload=payload)
     return Token(access_token=token)
+
+# @router.get("/logout")
+# async def revoke_token():
+#     pass
