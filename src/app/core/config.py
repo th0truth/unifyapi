@@ -38,9 +38,9 @@ class Settings(BaseSettings):
     JWT_REFRESH_MIN: int | float
 
     scopes: Dict[str, Any] = {
-        "students": "Read students",
-        "teachers": "teacher",
-        "admin": "Administrator"
+        "students": "",
+        "teachers": "",
+        "admin": ""
     }
 
     PRIVATE_KEY_PEM: bytes = private_key.private_bytes(
@@ -52,4 +52,5 @@ class Settings(BaseSettings):
         encoding=serialization.Encoding.PEM,
         format=serialization.PublicFormat.SubjectPublicKeyInfo)
 
+    
 settings = Settings()

@@ -1,5 +1,5 @@
 from core.security.utils import get_hash_pwd, verify_pwd
-from core.security.jwt import decode_token
+from core.security.jwt import OAuthJWTBearer
 from core.schemas.user import (
     UserCreate,
     UserDelete,
@@ -52,7 +52,7 @@ async def authenticate_user(*, edbo_id: int, plain_pwd: str) -> Dict[str, Any] |
     return user
 
 async def verify_user_token(*, token: str) -> bool:
-    edbo_id = decode_token(token=token).get("sub")
+    edbo_id = OAuthJWTBearer.decode(token=token).get("sub")
     user = await UserDB.find_by({"edbo_id": int(edbo_id)})
     if not user:
         raise exceptions.UNAUTHORIZED(

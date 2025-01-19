@@ -6,7 +6,7 @@ from fastapi import Depends
 from typing import Annotated
 
 from core.config import settings
-from core.security.jwt import decode_token
+from core.security.jwt import OAuthJWTBearer
 from core.schemas.token import TokenData
 from core.schemas.user import UserDB
 
@@ -18,7 +18,7 @@ oauth2_scheme = OAuth2PasswordBearer(
 
 async def get_current_user(
     security_scopes: SecurityScopes, token: Annotated[str, Depends(oauth2_scheme)]):
-    payload = decode_token(token=token)
+    payload = OAuthJWTBearer.decode(token=token)
     edbo_id: int | None = int(payload.get("sub"))
     token_data = TokenData(scopes=payload.get("scopes"), username=edbo_id)
     for scope in security_scopes.scopes:

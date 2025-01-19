@@ -10,7 +10,6 @@ class StudentPublic(BaseModel):
     role: str | None = None
     edbo_id: int
     name: str
-    # password: str
 
 class StudentPrivate(BaseModel):
     edbo_id: int

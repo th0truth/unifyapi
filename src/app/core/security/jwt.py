@@ -1,36 +1,57 @@
 from datetime import datetime, timedelta, timezone
-from typing import Dict, Any
+from core.schemas.user import UserDB
+from core.schemas.token import Token
+import redis.asyncio as aioredis
 from core import exceptions
 import jwt
 
 from core.config import settings
 
 # https://www.iana.org/assignments/jwt/jwt.xhtml#claims
-# https://auth0.com/blog/how-to-handle-jwt-in-python/ |
 
-def encode_token(
-    payload: Dict[str, Any],
-    private_key: str | bytes = settings.PRIVATE_KEY_PEM,
+class OAuthJWTBearer:
+    """
+        JSON Web Token (JWT) is a compact, URL-safe means of representing
+        claims to be transferred between two parties.
+        
+        docs:
+            https://auth0.com/blog/how-to-handle-jwt-in-python/ 
+    """
     algorithm: str = settings.JWT_ALGORITHM
-) -> str:
-    payload.update(
-        {"exp": datetime.now(tz=timezone.utc) + timedelta(minutes=settings.JWT_EXPIRE_MIN),
-         "iat": datetime.now(tz=timezone.utc)})
-    return jwt.encode(payload=payload, key=private_key, algorithm=algorithm)
+    private_key: str | bytes = settings.PRIVATE_KEY_PEM
+    public_key: str | bytes = settings.PUBLIC_KEY_PEM
 
-def decode_token(
-    token: str | bytes,
-    public_key: str | bytes = settings.PUBLIC_KEY_PEM,
-    algorithms: list[str] = settings.JWT_ALGORITHM
-) -> dict:
-    try:
-        return jwt.decode(jwt=token, key=public_key, algorithms=algorithms)
-    except jwt.DecodeError:
-        raise exceptions.UNAUTHORIZED(
-            detail="Couldn't validate credentials",
-            headers={"WWW-Authenticate": "Bearer"})
+    @classmethod
+    def encode(cls, payload: dict) -> str:
+        payload.update(
+            {"exp": datetime.now(tz=timezone.utc) + timedelta(minutes=settings.JWT_EXPIRE_MIN),
+            "iat": datetime.now(tz=timezone.utc)})
+        return jwt.encode(payload=payload, key=cls.private_key, algorithm=cls.algorithm)
     
-def refresh_token(payload: dict) -> str:
-    payload.update({"exp": datetime.now(tz=timezone.utc) + timedelta(minutes=settings.JWT_EXPIRE_MIN)})
-    return jwt.encode(
-        payload=payload, key=settings.PRIVATE_KEY_PEM, algorithm=settings.JWT_ALGORITHM)
+    @classmethod
+    def decode(cls, token: str) -> dict:
+        try:
+            return jwt.decode(jwt=token, key=cls.public_key, algorithms=cls.algorithm)
+        except jwt.DecodeError:
+            raise exceptions.UNAUTHORIZED(
+                detail="Couldn't validate user credentials",
+                headers={"WWW-Authenticate": "Bearer"})
+     
+    @classmethod
+    def refresh(cls, payload: dict) -> str:
+        payload.update(
+            {"exp": datetime.now(tz=timezone.utc) + timedelta(minutes=settings.JWT_REFRESH_MIN)})
+        return jwt.encode(payload=payload, key=cls.private_key, algorithm=cls.algorithm)
+
+    @classmethod
+    async def verify(cls, token: str) -> Token:
+        payload: dict = cls.decode(token=token)
+        edbo_id: int = payload.get("sub")
+        user = await UserDB.find_by({"edbo_id": edbo_id})
+        if not user:
+            exceptions.UNAUTHORIZED(
+                detail="Couldn't validate user credentials",
+                headers={"WWW-Authenticate": "Bearer"}
+            )
+        token = cls.refresh(payload=payload)
+        return Token(access_token=token)
