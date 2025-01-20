@@ -1,12 +1,20 @@
 from passlib.context import CryptContext
-from core.schemas import user
 
-pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
+class Hash:
+    """
+        Hashing algorithms.
 
-def get_hash_pwd(plain_pwd: str | bytes) -> str:
-    return pwd_context.hash(secret=plain_pwd)
+        docs: https://passlib.readthedocs.io/en/stable/index.html
+    """
+    context = CryptContext(schemes=["argon2"], deprecated="auto")
 
-def verify_pwd(plain_pwd: str | bytes, hashed_pwd: str | bytes) -> bool:
-    try: return pwd_context.verify(secret=plain_pwd, hash=hashed_pwd)
-    except:
-        return False
+    @classmethod
+    def hash(cls, plain_pwd: str | bytes) -> str:
+        return cls.context.hash(secret=plain_pwd)
+        
+    @classmethod
+    def verify(cls, plain_pwd: str | bytes, hashed_pwd: str | bytes) -> bool:
+        try:
+            return cls.context.verify(secret=plain_pwd, hash=hashed_pwd)
+        except:
+            return False

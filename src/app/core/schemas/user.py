@@ -1,15 +1,27 @@
 from pydantic import BaseModel, Field, EmailStr
-from typing import Literal
+from typing import List, Literal
 
+from datetime import datetime
 from core.db.database import MongoDB
 
-ROLE = Literal["student", "teacher", "admin"] 
+ROLE = Literal["students", "teachers", "admins"] 
+PRIVILEGES = List[Literal["student"]]
 
-class UserCreate(BaseModel):
-    role: ROLE 
+class User(BaseModel):
     edbo_id: int
-    name: str
     email: EmailStr | None = None
+    phone_number: str | None = None
+    first_name: str
+    middle_name: str
+    last_name: str 
+    age: int
+    date_of_birth: str
+    role: ROLE
+    privileges: PRIVILEGES
+    # password: str = Field(..., min_length=8, max_length=16)
+
+# class User()
+class UserCreate(User):
     password: str = Field(..., min_length=8, max_length=16)
 
 class UserDelete(BaseModel):

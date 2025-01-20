@@ -1,10 +1,9 @@
 from pydantic import BaseModel, Field, EmailStr
+from .user import UserCreate
 
-class StudentCreate(BaseModel):
-    edbo_id: int
-    name: str
-    email: EmailStr | None = None
-    password: str = Field(..., min_length=8, max_length=16)
+class StudentCreate(UserCreate):
+    class_name: str = Field(..., min_length=3)
+    role: str = "students"
 
 class StudentPublic(BaseModel):
     role: str | None = None

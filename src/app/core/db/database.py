@@ -26,14 +26,14 @@ class MongoDB:
         collection.insert_one(doc)
 
     @classmethod
-    async def find_all(cls, skip: int = 0, length: int | None = None) -> List[Dict[Any, Any]]:
+    async def find_all(cls, skip: int = 0, length: int | None = None) -> List[Dict[str, Any]]:
         """Find all documents in the MongoDB collection."""
         collection = await cls.get_collection()
         cursor = collection.find().to_list(length)
         return [j for j in await cursor][skip:]
 
     @classmethod
-    async def find_by(cls, filter: Any | None = None) -> Dict[Any, Any]:
+    async def find_by(cls, filter: Any | None = None) -> Dict[str, Any]:
         """Find a document by 'filter' in the MongoDB collection."""
         collection = await cls.get_collection()
         return await collection.find_one(filter)
@@ -44,16 +44,25 @@ class MongoDB:
         return collection.find_one_and_update(filter, update)
 
     @classmethod
-    async def delete_doc_by(cls, filter: dict) -> bool:
+    async def delete_document_by(cls, filter: dict) -> bool:
         """Delete a document by 'filter' in the MongoDB collection."""
         collection = await cls.get_collection()
         collection.delete_one(filter)
   
     @classmethod
-    async def count(cls, filter: Any = {}) -> int:
+    async def count_documents(cls, filter: Any = {}) -> int:
         """Count of documents in the MongoDB collection."""
         collection = await cls.get_collection()
         return await collection.count_documents(filter)
+
+    @classmethod
+    async def get_databases(cls):
+        return await cls.client.list_database_names()
+
+    @classmethod
+    async def get_collections(cls) -> List[str]:
+        database = await cls.get_database()
+        return await database.list_collection_names()
 
     @classmethod
     async def get_database(cls) -> AsyncIOMotorDatabase:
@@ -78,7 +87,6 @@ class MongoDB:
         try:
             cls.client = AsyncIOMotorClient(
                 f"mongodb+srv://{settings.DB_USERNAME}:{settings.DB_PASSWORD}@{settings.DB_HOSTNAME}.mongodb.net")
-            print("MongoDB connected successfully")
         except Exception as err:
             raise exceptions.INTERNAL_SERVER_ERROR(detail=err)
 
@@ -86,4 +94,3 @@ class MongoDB:
     def __exit__(cls, exc_type, exc_value, traceback) -> None:
         """Disconnect MongoDB Cluster from API"""
         cls.client.close()
-        print("MongoDB disconnected succesfully")

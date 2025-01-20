@@ -17,7 +17,9 @@ oauth2_scheme = OAuth2PasswordBearer(
     scopes=settings.scopes)
 
 async def get_current_user(
-    security_scopes: SecurityScopes, token: Annotated[str, Depends(oauth2_scheme)]):
+    security_scopes: SecurityScopes,
+    token: Annotated[str, Depends(oauth2_scheme)]
+) -> dict:
     payload = OAuthJWTBearer.decode(token=token)
     edbo_id: int | None = int(payload.get("sub"))
     token_data = TokenData(scopes=payload.get("scopes"), username=edbo_id)

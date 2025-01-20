@@ -3,6 +3,7 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.backends import default_backend
 from typing import Dict, Any
+import secrets
 
 private_key = rsa.generate_private_key(
     public_exponent=65537,
@@ -42,6 +43,12 @@ class Settings(BaseSettings):
         "teachers": "",
         "admin": ""
     }
+
+    GOOGLE_CLIENT_ID: str = "276747290139-53mtbd2lj6ivlbeahgppatggshpfh0as.apps.googleusercontent.com"
+    GOOGLE_CLIENT_SECRET: str = "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"
+    REDIRECT_URL: str = f"http://localhost:8000{API_V1_STR}/auth"
+    FRONTEND_URL: str = f"http://localhost:8000/docs"
+    SECRET_KEY: str = secrets.token_hex(32)
 
     PRIVATE_KEY_PEM: bytes = private_key.private_bytes(
         encoding=serialization.Encoding.PEM,

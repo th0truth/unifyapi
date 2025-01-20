@@ -6,14 +6,17 @@ from core.schemas.user import (
 )
 
 from typing import Annotated
-
 import api.deps as deps
 import crud
 
+from core.schemas.user import UserDB
+
 router = APIRouter(tags=["Users"])
 
-@router.post("/create", dependencies=[Security(deps.get_current_user, scopes=["admin"])])
-async def create_user(user: Annotated[UserCreate, Body()]):
+UserDB.COLLECTION_NAME = "ipz12"
+
+@router.post("/create") #dependencies=[Security(deps.get_current_user, scopes=["admin"])])
+async def create_user(user: UserCreate = Body()):
     """
         Create a new user account.
     """
