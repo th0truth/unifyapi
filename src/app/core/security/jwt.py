@@ -1,7 +1,6 @@
 from datetime import datetime, timedelta, timezone
 from core.schemas.user import UserDB
 from core.schemas.token import Token
-import redis.asyncio as aioredis
 from core import exc
 import jwt
 
