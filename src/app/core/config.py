@@ -48,8 +48,8 @@ class Settings(BaseSettings):
 
     GOOGLE_CLIENT_ID: str = "276747290139-53mtbd2lj6ivlbeahgppatggshpfh0as.apps.googleusercontent.com"
     GOOGLE_CLIENT_SECRET: str = "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"
-    REDIRECT_URL: str = "http://localhost:5000/api/v1/auth/google"
-    FRONTEND_URL: str = "http://localhost:5000/api/v1/users/me"
+    # FRONTEND_URL: str = "http://localhost:5000/api/v1/users/me"
+    REDIRECT_URL: str = "https://unifyapi.onrender.com/api/v1/auth/google"
     SECRET_KEY: str = secrets.token_hex(32)
 
     PRIVATE_KEY_PEM: bytes = private_key.private_bytes(
