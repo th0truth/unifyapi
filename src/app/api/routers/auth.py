@@ -63,7 +63,7 @@ async def auth_via_google(request: Request):
         raise exc.UNAUTHORIZED(
             detail="Google authentication failed.")
     try:
-        headers = {"Authorization": f"Bearer {token["access_token"]}"}
+        headers = {"Authorization": f"Bearer {token['access_token']}"}
         response: dict = requests.get("https://www.googleapis.com/oauth2/v2/userinfo", headers=headers).json()
     except:
         raise exc.UNAUTHORIZED(
