@@ -1,10 +1,11 @@
-from core import exceptions
 from core.config import settings
+from core.logger import logger
 from motor.motor_asyncio import (
     AsyncIOMotorClient,
     AsyncIOMotorDatabase,
     AsyncIOMotorCollection   
 )
+from core import exc
 from typing import (
     Any, 
     List,
@@ -39,9 +40,10 @@ class MongoDB:
         return await collection.find_one(filter)
  
     @classmethod
-    async def find_one_and_update(cls, filter: dict | Any, update: dict | Any):
+    async def update_one(cls, filter: dict, update: dict):
+        """Find a document by 'filter' in the collection and update the document data."""
         collection = await cls.get_collection()
-        return collection.find_one_and_update(filter, update)
+        collection.update_one(filter, {"$set": update})
 
     @classmethod
     async def delete_document_by(cls, filter: dict) -> bool:
@@ -70,7 +72,7 @@ class MongoDB:
         try:
             return cls.client.get_database(name=cls.DATABASE_NAME)
         except Exception as err:
-            raise exceptions.INTERNAL_SERVER_ERROR(detail=err)
+            raise exc.INTERNAL_SERVER_ERROR(detail=err)
 
     @classmethod
     async def get_collection(cls) -> AsyncIOMotorCollection:
@@ -79,7 +81,7 @@ class MongoDB:
         try:
             return database.get_collection(name=cls.COLLECTION_NAME)
         except Exception as err:
-            raise exceptions.INTERNAL_SERVER_ERROR(detail=err)
+            raise exc.INTERNAL_SERVER_ERROR(detail=err)
 
     @classmethod
     def __enter__(cls) -> None:    
@@ -87,10 +89,13 @@ class MongoDB:
         try:
             cls.client = AsyncIOMotorClient(
                 f"mongodb+srv://{settings.DB_USERNAME}:{settings.DB_PASSWORD}@{settings.DB_HOSTNAME}.mongodb.net")
+            logger.info("MongoDB Cluster connected")
         except Exception as err:
-            raise exceptions.INTERNAL_SERVER_ERROR(detail=err)
+            logger.error(err)
+            raise exc.INTERNAL_SERVER_ERROR(detail=err)
 
     @classmethod
     def __exit__(cls, exc_type, exc_value, traceback) -> None:
         """Disconnect MongoDB Cluster from API"""
         cls.client.close()
+        logger.info("MongoDB Cluster disconnected")

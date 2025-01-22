@@ -2,10 +2,11 @@ from datetime import datetime, timedelta, timezone
 from core.schemas.user import UserDB
 from core.schemas.token import Token
 import redis.asyncio as aioredis
-from core import exceptions
+from core import exc
 import jwt
 
 from core.config import settings
+from core.logger import logger
 
 # https://www.iana.org/assignments/jwt/jwt.xhtml#claims
 
@@ -32,8 +33,9 @@ class OAuthJWTBearer:
     def decode(cls, token: str) -> dict:
         try:
             return jwt.decode(jwt=token, key=cls.public_key, algorithms=cls.algorithm)
-        except jwt.DecodeError:
-            raise exceptions.UNAUTHORIZED(
+        except jwt.DecodeError as err:
+            logger.error(err)
+            raise exc.UNAUTHORIZED(
                 detail="Couldn't validate user credentials",
                 headers={"WWW-Authenticate": "Bearer"})
      
@@ -46,10 +48,10 @@ class OAuthJWTBearer:
     @classmethod
     async def verify(cls, token: str) -> Token:
         payload: dict = cls.decode(token=token)
-        edbo_id: int = payload.get("sub")
+        edbo_id: int = payload.get("edbo_id")
         user = await UserDB.find_by({"edbo_id": edbo_id})
         if not user:
-            exceptions.UNAUTHORIZED(
+            exc.UNAUTHORIZED(
                 detail="Couldn't validate user credentials",
                 headers={"WWW-Authenticate": "Bearer"}
             )

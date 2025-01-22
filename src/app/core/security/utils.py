@@ -1,20 +1,23 @@
 from passlib.context import CryptContext
+from passlib import exc
+
+from core.logger import logger
 
 class Hash:
-    """
-        Hashing algorithms.
-
-        docs: https://passlib.readthedocs.io/en/stable/index.html
-    """
     context = CryptContext(schemes=["argon2"], deprecated="auto")
 
     @classmethod
-    def hash(cls, plain_pwd: str | bytes) -> str:
-        return cls.context.hash(secret=plain_pwd)
-        
-    @classmethod
-    def verify(cls, plain_pwd: str | bytes, hashed_pwd: str | bytes) -> bool:
+    def hash(cls, plain: str) -> str:
+        """Return hashed password."""
         try:
-            return cls.context.verify(secret=plain_pwd, hash=hashed_pwd)
-        except:
-            return False
+            return cls.context.hash(secret=plain)
+        except exc.PasswordValueError as err:
+            logger.error(err)
+
+    @classmethod
+    def verify(cls, plain: str, hashed: str) -> bool:
+        """Return bool type of the verified password"""
+        try:
+            return cls.context.verify(secret=plain, hash=hashed)
+        except exc.PasswordValueError as err:
+            logger.error(err)
