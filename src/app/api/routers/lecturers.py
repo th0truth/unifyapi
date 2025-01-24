@@ -14,6 +14,6 @@ UserDB.COLLECTION_NAME = "lecturers"
 @router.post("/create", dependencies=[Security(deps.get_current_user, scopes=["admin"])])
 async def create_lecturer(user: LecturerCreate = Body()):
     """
-        Create a new lecturer account.
+        Create a new lecturer account. ##### FOR ADMINS
     """
     return await crud.create_user(user=user)

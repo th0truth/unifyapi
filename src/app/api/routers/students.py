@@ -21,7 +21,7 @@ router = APIRouter(tags=["Students"])
 
 UserDB.COLLECTION_NAME = "students"
 
-@router.post("/create") #dependencies=[Security(deps.get_current_user, scopes=["admin"])])
+@router.post("/create", dependencies=[Security(deps.get_current_user, scopes=["admin"])])
 async def create_student(user: StudentCreate = Body()):
     """
         Create a student account.
@@ -30,10 +30,11 @@ async def create_student(user: StudentCreate = Body()):
     return await crud.create_user(user=user)
 
 @router.get("/all/{group}", response_model=List[StudentPublic],
-            dependencies=[Depends(deps.get_current_user)])
-async def read_students(group: str) -> List[Dict[str, Any]]:
+        dependencies=[Security(deps.get_current_user, scopes=["lecturer", "admin"])])
+async def read_students(group: str, skip: int = 0, length: int | None = None) -> List[StudentPublic]:
     """
-        Return a list of all existing students from the given class.
+        Return a list of all existing students from the given group.\n
+        e.g: group=IPZ-12 or KI-11
     """
-    
-    # return await crud.read_users(collection=)
+
+    return await crud.read_users(role="students", filter="group", value=group, skip=skip, length=length)

@@ -27,10 +27,10 @@ class MongoDB:
         collection.insert_one(doc)
 
     @classmethod
-    async def find_all(cls, skip: int = 0, length: int | None = None) -> List[Dict[str, Any]]:
+    async def find_all(cls, filter: str | None = None, value: Any = None, skip: int = 0, length: int | None = None) -> List[Dict[str, Any]]:
         """Find all documents in the MongoDB collection."""
         collection = await cls.get_collection()
-        cursor = collection.find().to_list(length)
+        cursor = collection.find({filter: value} if filter and value else None).to_list(length)
         return [j for j in await cursor][skip:]
 
     @classmethod

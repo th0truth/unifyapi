@@ -42,17 +42,13 @@ async def create_user(*, user: UserCreate) -> bool:
     await UserDB.create(user.model_dump())
     raise exc.CREATED(detail="User created successfully.")
 
-async def read_users(*, filter: str) -> List[Dict[str, Any]]:
+async def read_users(*, role: str, filter: str | None = None, value: Any, skip: int, length: int | None = None) -> List[Dict[str, Any]]:
     """
         Read all users from the MongoDB collection.
     """
-    print(UserDB.COLLECTION_NAME)
-    # collections = await UserDB.get_collections()
-    # if collection not in collections:
-    #     raise exc.NOT_FOUND(
-    #         detail=f"The collection '{collection}' not found.")
-    # UserDB.COLLECTION_NAME = collection
-    # return await UserDB.find_all(skip=skip, length=length)
+    UserDB.COLLECTION_NAME = role
+    return await UserDB.find_all(
+        filter=filter, value=value, skip=skip, length=length)
 
 async def read_user(*, edbo_id: int) -> Dict[str, Any]:
     """
@@ -82,7 +78,8 @@ async def delete_user(*, user: UserDelete):
     """
     user = await UserDB.find_by({"edbo_id": user.edbo_id})
     if not user:
-        raise exc.UNPROCESSABLE_CONTENT()
+        raise exc.NOT_FOUND(
+            detail="User not found.")
     await UserDB.delete_document_by({"edbo_id": user.edbo_id})
     raise exc.OK()
 

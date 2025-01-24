@@ -11,12 +11,18 @@ class StudentCreate(UserCreate):
     complete_of_study: str
 
 class StudentPublic(BaseModel):
-    role: str | None = None
+    role: str
     edbo_id: int
-    name: str
+    first_name: str
+    middle_name: str
+    last_name: str
 
 class StudentPrivate(BaseModel):
     edbo_id: int
-    name: str
+    first_name: str
+    middle_name: str
+    last_name: str
+    course: int
+    group: str
     email: EmailStr | None = None
     password: str

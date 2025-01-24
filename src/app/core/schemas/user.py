@@ -4,6 +4,8 @@ from typing import Literal, List
 
 from core.db.database import MongoDB
 
+ROLE = Literal["students", "lecturers", "admins"]
+
 class User(BaseModel):
     edbo_id: int
     first_name: str
@@ -11,7 +13,7 @@ class User(BaseModel):
     last_name: str 
     date_of_birth: str
     phone_number: List[int]
-    role: Literal["students", "lecturers", "admins"] = "students"
+    role: ROLE
     scopes: list
     password: str = Field(..., min_length=8, max_length=16)
 

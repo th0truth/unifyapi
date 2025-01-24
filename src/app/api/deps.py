@@ -25,9 +25,16 @@ async def get_current_user(
         raise exc.UNAUTHORIZED(deta="Invalid user credentials.")
     UserDB.COLLECTION_NAME = payload.get("role")
     edbo_id = int(payload.get("sub"))
-    token_data = TokenData(edbo_id=edbo_id, scopes=payload.get("scope"))
-    for scope in security_scopes.scopes:
-        if scope not in token_data.scopes:
-            raise exc.UNAUTHORIZED(
-                detail="Not enough permissions")
+    scopes = payload.get("scopes")
+    if not scopes:
+        user = await UserDB.find_by({"edbo_id": edbo_id})
+        if not user:
+            raise exc.UNAUTHORIZED()
+        scopes = user.get("scopes")
+    token_data = TokenData(edbo_id=edbo_id, scopes=scopes)
+    if security_scopes.scopes:
+        for scope in token_data.scopes:
+            if scope not in security_scopes.scopes:
+                raise exc.UNAUTHORIZED(
+                    detail="Not enough permissions")
     return await UserDB.find_by({"edbo_id": edbo_id})
