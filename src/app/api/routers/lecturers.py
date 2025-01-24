@@ -11,9 +11,9 @@ router = APIRouter(tags=["Lecturers"])
 
 UserDB.COLLECTION_NAME = "lecturers"
 
-@router.post("/create", dependencies=[Security(deps.get_current_user, scopes=["admins"])])
-async def create_lecture(user: LecturerCreate = Body()):
+@router.post("/create", dependencies=[Security(deps.get_current_user, scopes=["admin"])])
+async def create_lecturer(user: LecturerCreate = Body()):
     """
-        Create a new user account.
+        Create a new lecturer account.
     """
     return await crud.create_user(user=user)

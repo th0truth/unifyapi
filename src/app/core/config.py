@@ -41,8 +41,8 @@ class Settings(BaseSettings):
     JWT_REFRESH_MIN: int | float
 
     scopes: Dict[str, Any] = {
-        "students": "",
-        "teachers": "",
+        "student": "",
+        "lecturer": "",
         "admin": ""
     }
 

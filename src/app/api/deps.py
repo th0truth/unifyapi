@@ -21,8 +21,11 @@ async def get_current_user(
     token: Annotated[str, Depends(oauth2_scheme)]
 ) -> dict:
     payload = OAuthJWTBearer.decode(token=token)
+    if not payload:
+        raise exc.UNAUTHORIZED(deta="Invalid user credentials.")
+    UserDB.COLLECTION_NAME = payload.get("role")
     edbo_id = int(payload.get("sub"))
-    token_data = TokenData(scopes=payload.get("scopes"), username=edbo_id)
+    token_data = TokenData(edbo_id=edbo_id, scopes=payload.get("scope"))
     for scope in security_scopes.scopes:
         if scope not in token_data.scopes:
             raise exc.UNAUTHORIZED(

@@ -1,6 +1,7 @@
 from core.security.utils import Hash
 from core.schemas.user import (
     UserCreate,
+    UserUpdate,
     UserDelete,
     UserDB,
 )
@@ -10,6 +11,8 @@ from typing import (
     Dict,
     Any
 )
+
+from core.config import settings
 
 async def get_user_by_username(*, username: str) -> dict | None:
     """
@@ -34,33 +37,48 @@ async def create_user(*, user: UserCreate) -> bool:
     """
     if await UserDB.find_by({"edbo_id": user.edbo_id}):
         raise exc.UNPROCESSABLE_CONTENT(detail="User already exits.")
+    UserDB.COLLECTION_NAME = user.role
     user.password = Hash.hash(user.password)
     await UserDB.create(user.model_dump())
     raise exc.CREATED(detail="User created successfully.")
 
-async def read_users(*, collection: str, skip: int = 0, length: int | None = None) -> List[Dict[str, Any]]:
+async def read_users(*, filter: str) -> List[Dict[str, Any]]:
     """
         Read all users from the MongoDB collection.
     """
-    collections = await UserDB.get_collections()
-    if collection not in collections:
-        raise exc.NOT_FOUND(
-            detail=f"The collection '{collection}' not found.")
-    UserDB.COLLECTION_NAME = collection
-    return await UserDB.find_all(skip=skip, length=length)
+    print(UserDB.COLLECTION_NAME)
+    # collections = await UserDB.get_collections()
+    # if collection not in collections:
+    #     raise exc.NOT_FOUND(
+    #         detail=f"The collection '{collection}' not found.")
+    # UserDB.COLLECTION_NAME = collection
+    # return await UserDB.find_all(skip=skip, length=length)
 
-async def read_user(*, username: str) -> Dict[str, Any]:
+async def read_user(*, edbo_id: int) -> Dict[str, Any]:
     """
         Read user from the MongoDB collection.
     """
-    user = get_user_by_username(username=username)
+    user = await get_user_by_username(username=edbo_id)
     if not user:
-        raise exc.NOT_FOUND(detail="User not found")
+        raise exc.NOT_FOUND(detail="User not found.")
     return user 
+
+async def update_user(*, edbo_id: int, update: UserUpdate):
+    """
+        Update user data.
+    """
+    user = await get_user_by_username(username=edbo_id)
+    if not user:
+       raise exc.NOT_FOUND(detail="User not found.") 
+    await UserDB.update_one(
+        filter={"edbo_id": user.get("edbo_id")},
+        update=update.model_dump())
+    raise exc.OK(
+        detail="The user account has been updated.")
 
 async def delete_user(*, user: UserDelete):
     """
-        Delete user from the MongoDB collection by edbo_id.
+        Delete user from the MongoDB collection by 'edbo_id'.
     """
     user = await UserDB.find_by({"edbo_id": user.edbo_id})
     if not user:
@@ -78,4 +96,9 @@ async def authenticate_user(*, username: str | int, plain_pwd: str) -> Dict[str,
             detail="Couldn't validate credentials",
             headers={"WWW-Authenticate": "Bearer"}
         )
+    # Check user scopes (privileges)
+    scopes = user.get("scopes")
+    for scope in scopes:
+        if scope not in settings.scopes:
+            raise exc.UNAUTHORIZED("Invalid user credentials.")
     return user

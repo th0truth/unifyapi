@@ -1,10 +1,14 @@
-from pydantic import BaseModel, Field, EmailStr
+from pydantic import BaseModel, EmailStr
 from .user import UserCreate
 
 class StudentCreate(UserCreate):
-    group: str = Field(..., min_length=3)
     role: str = "students"
     scopes: list = ["students"]
+    speciality: str
+    course: int
+    group: str
+    start_of_study: str
+    complete_of_study: str
 
 class StudentPublic(BaseModel):
     role: str | None = None

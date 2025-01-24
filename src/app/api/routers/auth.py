@@ -47,7 +47,7 @@ async def login_via_credentials(form_data: Annotated[OAuth2PasswordRequestForm, 
     """
     user = await crud.authenticate_user(username=form_data.username, plain_pwd=form_data.password)
     token = OAuthJWTBearer.encode(
-        payload={"sub": str(user["edbo_id"]), "scope": form_data.scopes})
+        payload={"sub": str(user.get("edbo_id")), "role": user.get("role"), "scope": form_data.scopes})
     return Token(access_token=token)
 
 @router.post("/token", response_model=Token)
@@ -93,7 +93,7 @@ async def auth_google(request: Request):
         return templates.TemplateResponse(
             request=request, name="/email/failed.html")
     access_token = OAuthJWTBearer.encode(
-        payload={"sub": user.get("sub"), "scope": user.get("scopes")})
+        payload={"sub": user.get("sub"), "role": user.get("role"), "scope": user.get("scopes")})
     
 
     # response = templates.TemplateResponse(
