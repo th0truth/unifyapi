@@ -31,9 +31,9 @@ async def create_student(user: StudentCreate = Body()):
 
 @router.get("/all/{group}", response_model=List[StudentPublic],
             dependencies=[Depends(deps.get_current_user)])
-async def read_students(group: str = Path(min_length=3)) -> List[Dict[str, Any]]:
+async def read_students(group: str) -> List[Dict[str, Any]]:
     """
         Return a list of all existing students from the given class.
     """
     
-    return await crud.read_users(collection=class_name)
+    # return await crud.read_users(collection=)
