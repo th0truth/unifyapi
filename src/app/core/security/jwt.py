@@ -47,7 +47,7 @@ class OAuthJWTBearer:
     @classmethod
     async def verify(cls, token: str) -> Token:
         payload: dict = cls.decode(token=token)
-        edbo_id: int = payload.get("edbo_id")
+        edbo_id = int(payload.get("sub"))
         user = await UserDB.find_by({"edbo_id": edbo_id})
         if not user:
             exc.UNAUTHORIZED(

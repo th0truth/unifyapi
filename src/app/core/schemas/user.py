@@ -1,21 +1,17 @@
 from pydantic import BaseModel, Field, EmailStr
-from typing import List, Literal
-
 from datetime import datetime
+from typing import Literal
+
 from core.db.database import MongoDB
 
-ROLES = ["students", "teachers", "admins"] 
-SCOPES = ["students", "teachers", "admins"]
+ROLE = Literal["students", "teachers", "admins"]
 
 class User(BaseModel):
     edbo_id: int
-    phone_number: str | None = None
-    first_name: str
-    middle_name: str
-    last_name: str 
+    name: str
     age: int
-    date_of_birth: str
-    role: str
+    dob: str
+    role: ROLE = "students"
     scopes: list
 
 class UserCreate(User):
@@ -27,8 +23,6 @@ class UserUpdate(BaseModel):
     password: str | None = None
 
 class UserDelete(BaseModel):
-    database_name: str
-    collection_name: str
     edbo_id: int
     email: EmailStr | None = None
 
@@ -36,9 +30,6 @@ class UserPrivate(BaseModel):
     edbo_id: int
     phone_number: str
     email: EmailStr | None = None
-    first_name: str
-    middle_name: str
-    last_name: str
     password: str
 
 class UserDB(MongoDB):

@@ -3,7 +3,6 @@ from core.schemas.user import (
     UserCreate,
     UserDelete,
     UserDB,
-    ROLES
 )
 from core import exc
 from typing import (
@@ -30,10 +29,9 @@ async def get_user_by_username(*, username: str) -> dict | None:
     return user
 
 async def create_user(*, user: UserCreate) -> bool:
-    """Create a new user in the MongoDB collection."""
-    if not user.role in ROLES:
-        raise exc.UNPROCESSABLE_CONTENT() 
-    UserDB.COLLECTION_NAME == user.role
+    """
+        Create a new user in the MongoDB collection.
+    """
     if await UserDB.find_by({"edbo_id": user.edbo_id}):
         raise exc.UNPROCESSABLE_CONTENT(detail="User already exits.")
     user.password = Hash.hash(user.password)
@@ -41,7 +39,9 @@ async def create_user(*, user: UserCreate) -> bool:
     raise exc.CREATED(detail="User created successfully.")
 
 async def read_users(*, collection: str, skip: int = 0, length: int | None = None) -> List[Dict[str, Any]]:
-    """Read all users from the MongoDB collection."""
+    """
+        Read all users from the MongoDB collection.
+    """
     collections = await UserDB.get_collections()
     if collection not in collections:
         raise exc.NOT_FOUND(
@@ -50,14 +50,18 @@ async def read_users(*, collection: str, skip: int = 0, length: int | None = Non
     return await UserDB.find_all(skip=skip, length=length)
 
 async def read_user(*, username: str) -> Dict[str, Any]:
-    """Read user from the MongoDB collection."""
+    """
+        Read user from the MongoDB collection.
+    """
     user = get_user_by_username(username=username)
     if not user:
         raise exc.NOT_FOUND(detail="User not found")
     return user 
 
 async def delete_user(*, user: UserDelete):
-    """Delete user from the MongoDB collection by edbo_id."""
+    """
+        Delete user from the MongoDB collection by edbo_id.
+    """
     user = await UserDB.find_by({"edbo_id": user.edbo_id})
     if not user:
         raise exc.UNPROCESSABLE_CONTENT()
@@ -65,7 +69,9 @@ async def delete_user(*, user: UserDelete):
     raise exc.OK()
 
 async def authenticate_user(*, username: str | int, plain_pwd: str) -> Dict[str, Any] | bool:
-    """Authenticate / verify user"""
+    """
+        Authenticate user credentials.
+    """
     user = await get_user_by_username(username=username)
     if not user or not Hash.verify(plain_pwd, user["password"]):
         raise exc.UNAUTHORIZED(

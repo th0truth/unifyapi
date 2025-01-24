@@ -2,7 +2,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.backends import default_backend
-from typing import Literal, Dict, Any
+from typing import Dict, Any
 import secrets
 
 private_key = rsa.generate_private_key(
@@ -17,8 +17,8 @@ class Settings(BaseSettings):
         env_ignore_empty=True,
         extra="ignore"
     )
-    ENVIRONMENT: Literal["local", "production"] = "local"
-    BACKEND_CORS: list = ["http://localhost:8000/"]
+    
+    # ENVIRONMENT: Literal["local", "production"] = "local"
  
     # API settings
     
@@ -46,10 +46,9 @@ class Settings(BaseSettings):
         "admin": ""
     }
 
-    GOOGLE_CLIENT_ID: str = "276747290139-53mtbd2lj6ivlbeahgppatggshpfh0as.apps.googleusercontent.com"
-    GOOGLE_CLIENT_SECRET: str = "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"
-    # FRONTEND_URL: str = "http://localhost:5000/api/v1/users/me"
-    REDIRECT_URL: str = "https://unifyapi.onrender.com/api/v1/auth/google"
+    GOOGLE_CLIENT_ID: str
+    GOOGLE_CLIENT_SECRET: str
+    REDIRECT_URL: str
     SECRET_KEY: str = secrets.token_hex(32)
 
     PRIVATE_KEY_PEM: bytes = private_key.private_bytes(

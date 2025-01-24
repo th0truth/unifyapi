@@ -1,16 +1,16 @@
+from typing import Annotated
 from fastapi import (
     APIRouter,
     Body,
     Security,
     Depends
 )
+
 from core.schemas.user import (
-    UserCreate,
     UserDelete,
     UserPrivate,
     UserDB
 )
-from typing import Annotated
 import api.deps as deps
 import crud
 
@@ -18,14 +18,7 @@ router = APIRouter(tags=["Users"])
 
 UserDB.DATABASE_NAME = "users"
 
-@router.post("/create", dependencies=[Security(deps.get_current_user, scopes=["admin"])])
-async def create_user(user: UserCreate = Body()):
-    """
-        Create a new user account.
-    """
-    return await crud.create_user(user=user)
-
-@router.delete("/delete", dependencies=[Security(deps.get_current_user, scopes=["admin"])])
+@router.delete("/delete", dependencies=[Security(deps.get_current_user, scopes=["admins"])])
 async def delete_user(user: UserDelete = Body()):
     """
         Delete an exiting user account.

@@ -21,7 +21,7 @@ async def get_current_user(
     token: Annotated[str, Depends(oauth2_scheme)]
 ) -> dict:
     payload = OAuthJWTBearer.decode(token=token)
-    edbo_id: int = payload.get("edbo_id")
+    edbo_id = int(payload.get("sub"))
     token_data = TokenData(scopes=payload.get("scopes"), username=edbo_id)
     for scope in security_scopes.scopes:
         if scope not in token_data.scopes:
