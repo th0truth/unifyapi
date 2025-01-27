@@ -1,8 +1,9 @@
 from pydantic import BaseModel
-
 from core.db.database import MongoDB
 
 class Schedule(BaseModel):
+    teacher: dict | None = None
+    group: str
     name: str
     lesson_id: str
     position: int
@@ -10,9 +11,14 @@ class Schedule(BaseModel):
     time: str
     topic: str
     homework: str
-    teacher_edbo: int
-    teacher: dict
-    group: str
+
+class ScheduleCreate(BaseModel):
+    name: str
+    position: int
+    classroom: int
+    time: str
+    topic: str
+    homework: str
 
 class ScheduleTeacher(BaseModel):
     edbo_id: int
