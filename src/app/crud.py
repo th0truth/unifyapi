@@ -1,9 +1,9 @@
 from core.security.utils import Hash
 from core.schemas.user import (
     UserCreate,
-    UserUpdate,
     UserDelete,
     UserDB,
+    ROLE
 )
 from core import exc
 from typing import (
@@ -42,12 +42,19 @@ async def create_user(*, user: UserCreate) -> bool:
     await UserDB.create(user.model_dump())
     raise exc.CREATED(detail="User created successfully.")
 
-async def read_users(*, role: str, filter: str | None = None, value: Any, skip: int, length: int | None = None) -> List[Dict[str, Any]]:
+async def count_users(*, collection: ROLE, filter: dict):
+    """
+        Read count of users.
+    """
+    UserDB.COLLECTION_NAME = collection
+    return await UserDB.count_documents(filter)
+
+async def read_users(*, role: ROLE, filter: str | None = None, value: Any, skip: int = 0, length: int | None = None) -> List[Dict[str, Any]]:
     """
         Read all users from the MongoDB collection.
     """
     UserDB.COLLECTION_NAME = role
-    return await UserDB.find_all(
+    return await UserDB.find_many(
         filter=filter, value=value, skip=skip, length=length)
 
 async def read_user(*, edbo_id: int) -> Dict[str, Any]:
@@ -59,7 +66,7 @@ async def read_user(*, edbo_id: int) -> Dict[str, Any]:
         raise exc.NOT_FOUND(detail="User not found.")
     return user 
 
-async def update_user(*, edbo_id: int, update: UserUpdate):
+async def update_user(*, edbo_id: int, data: dict):
     """
         Update user data.
     """
@@ -68,7 +75,7 @@ async def update_user(*, edbo_id: int, update: UserUpdate):
        raise exc.NOT_FOUND(detail="User not found.") 
     await UserDB.update_one(
         filter={"edbo_id": user.get("edbo_id")},
-        update=update.model_dump())
+        update=data)
     raise exc.OK(
         detail="The user account has been updated.")
 
@@ -83,7 +90,7 @@ async def delete_user(*, user: UserDelete):
     await UserDB.delete_document_by({"edbo_id": user.edbo_id})
     raise exc.OK()
 
-async def authenticate_user(*, username: str | int, plain_pwd: str) -> Dict[str, Any] | bool:
+async def authenticate_user(*, username: str | int, plain_pwd: str) -> dict:
     """
         Authenticate user credentials.
     """

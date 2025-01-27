@@ -42,7 +42,7 @@ class Settings(BaseSettings):
 
     scopes: Dict[str, Any] = {
         "student": "",
-        "lecturer": "",
+        "teacher": "",
         "admin": ""
     }
 
@@ -50,6 +50,11 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_SECRET: str
     REDIRECT_URL: str
     SECRET_KEY: str = secrets.token_hex(32)
+
+    # SMTP
+
+    EMAIL_NAME: str | None = None
+    EMAIL_PASSWORD: str | None = None 
 
     PRIVATE_KEY_PEM: bytes = private_key.private_bytes(
         encoding=serialization.Encoding.PEM,

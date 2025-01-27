@@ -16,6 +16,7 @@ class StudentPublic(BaseModel):
     first_name: str
     middle_name: str
     last_name: str
+    group: str
 
 class StudentPrivate(BaseModel):
     edbo_id: int

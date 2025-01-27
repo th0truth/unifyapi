@@ -27,7 +27,7 @@ class MongoDB:
         collection.insert_one(doc)
 
     @classmethod
-    async def find_all(cls, filter: str | None = None, value: Any = None, skip: int = 0, length: int | None = None) -> List[Dict[str, Any]]:
+    async def find_many(cls, filter: str | None = None, value: Any = None, skip: int = 0, length: int | None = None) -> List[Dict[str, Any]]:
         """Find all documents in the MongoDB collection."""
         collection = await cls.get_collection()
         cursor = collection.find({filter: value} if filter and value else None).to_list(length)
@@ -52,10 +52,17 @@ class MongoDB:
         collection.delete_one(filter)
   
     @classmethod
-    async def count_documents(cls, filter: Any = {}) -> int:
+    async def count_documents(cls, filter: dict = {}) -> dict | int:
         """Count of documents in the MongoDB collection."""
+        result = {}
         collection = await cls.get_collection()
-        return await collection.count_documents(filter)
+        for key, value in filter.items():
+            if isinstance(value, list):
+                for j in value:
+                    result.update({j: await collection.count_documents({key: j})})
+            else:
+                result = await collection.count_documents({key: value})
+        return result
 
     @classmethod
     async def get_databases(cls):

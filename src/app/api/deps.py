@@ -7,7 +7,7 @@ from typing import Annotated
 
 from core.config import settings
 from core.security.jwt import OAuthJWTBearer
-from core.schemas.token import TokenData
+from core.schemas.utils import TokenData
 from core.schemas.user import UserDB
 
 from core import exc
@@ -37,4 +37,5 @@ async def get_current_user(
             if scope not in security_scopes.scopes:
                 raise exc.UNAUTHORIZED(
                     detail="Not enough permissions")
-    return await UserDB.find_by({"edbo_id": edbo_id})
+    user = await UserDB.find_by({"edbo_id": edbo_id})
+    return user

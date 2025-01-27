@@ -4,7 +4,7 @@ from typing import Literal, List
 
 from core.db.database import MongoDB
 
-ROLE = Literal["students", "lecturers", "admins"]
+ROLE = Literal["students", "teachers", "admins"]
 
 class User(BaseModel):
     edbo_id: int
@@ -15,11 +15,12 @@ class User(BaseModel):
     phone_number: List[int]
     role: ROLE
     scopes: list
-    password: str = Field(..., min_length=8, max_length=16)
+    password: str
 
 class UserCreate(User):
     acc_date: datetime
-    
+    password: str = Field(..., min_length=8, max_length=16)
+
 class UserUpdate(BaseModel):
     email: EmailStr | None = None
 

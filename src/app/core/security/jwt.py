@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, timezone
 from core.schemas.user import UserDB
-from core.schemas.token import Token
+from core.schemas.utils import Token
 from core import exc
 import jwt
 
