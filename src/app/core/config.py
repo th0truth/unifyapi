@@ -46,15 +46,15 @@ class Settings(BaseSettings):
         "admin": ""
     }
 
+    GMAIL_NAME: str
+    GMAIL_PASSWORD: str
+
     GOOGLE_CLIENT_ID: str
     GOOGLE_CLIENT_SECRET: str
-    REDIRECT_URL: str
     SECRET_KEY: str = secrets.token_hex(32)
-
-    # SMTP
-
-    EMAIL_NAME: str | None = None
-    EMAIL_PASSWORD: str | None = None 
+    REDIRECT_URL: str
+    
+    GOOGLE_API_KEY: str
 
     PRIVATE_KEY_PEM: bytes = private_key.private_bytes(
         encoding=serialization.Encoding.PEM,

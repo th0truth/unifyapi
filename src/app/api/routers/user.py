@@ -1,4 +1,3 @@
-from typing import Annotated
 from fastapi import (
     APIRouter,
     Depends,
@@ -7,8 +6,8 @@ from fastapi import (
 
 from core.security.utils import Hash
 from core.schemas.user import (
+    User,
     UserUpdate,
-    UserPrivate,
 )
 from core.schemas.utils import (
     UpdatePassword,
@@ -20,37 +19,45 @@ import crud
 
 router = APIRouter(tags=["User"])
 
-@router.get("/me", response_model=UserPrivate)
-async def get_current_user(user_private: Annotated[UserPrivate, Depends(deps.get_current_user)]):
+@router.get("/me", response_model=User)
+async def get_current_user(user: User = Depends(deps.get_current_user)):
     """
         Return the user's private data.
     """
    
-    return user_private
+    return user
 
-@router.patch("/update")
-async def update_current_user(
-    user: Annotated[UserPrivate, Depends(deps.get_current_user)], user_update: UserUpdate = Body()):
+@router.patch("/add-email")
+async def add_user_email(
+    user: dict = Depends(deps.get_current_user), user_update: UserUpdate = Body()):
     """
-        Update current user data. 
+        Add email to the user account.
     """
-    
-    await crud.update_user(edbo_id=user.get("edbo_id"), data=user_update.model_dump())  
+
+    if await crud.get_user_by_username(username=user_update.email):
+        raise exc.CONFLICT(
+            detail="That email is already associated with another account.")
+    user = await crud.authenticate_user(username=user.get("edbo_id"), plain_pwd=user_update.password) 
+    await crud.update_user(
+        edbo_id=user.get("edbo_id"),
+        data={"email": user_update.email}
+    )
 
 @router.patch("/update/password")
-async def update_password_me(user_private: Annotated[UserPrivate, Depends(deps.get_current_user)],
-                             body: Annotated[UpdatePassword, Body()]):
+async def update_password_me(user: dict = Depends(deps.get_current_user),
+                             body: UpdatePassword = Body()):
     """
         Update own passoword.
     """
-    user = await crud.authenticate_user(username=user_private.get("edbo_id"), plain_pwd=body.current_password)
+
+    user = await crud.authenticate_user(username=user.get("edbo_id"), plain_pwd=body.current_password)
     if not user:
         raise exc.UNAUTHORIZED(detail="Incorrect password")
     await crud.update_user(
         edbo_id=user.get("edbo_id"), data={"password": Hash.hash(plain=body.new_password)})
 
 @router.patch("/password-recovery")
-async def password_recovery(body: Annotated[PasswordRecovery, Body()]):
+async def password_recovery(body: PasswordRecovery = Body()):
     """
         Password recovery.
     """

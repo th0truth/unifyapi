@@ -66,6 +66,17 @@ async def read_user(*, edbo_id: int) -> Dict[str, Any]:
         raise exc.NOT_FOUND(detail="User not found.")
     return user 
 
+async def update_all_users(*, collection: ROLE, filter: dict, data: dict):
+    """
+        Update users data.
+    """
+    UserDB.COLLECTION_NAME = collection
+    await UserDB.update_many(
+        filter=filter,
+        update=data)
+    raise exc.OK(
+        detail="Users account has been updated.")
+
 async def update_user(*, edbo_id: int, data: dict):
     """
         Update user data.

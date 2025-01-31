@@ -10,7 +10,8 @@ from core.schemas.user import (
     UserUpdate,
     UserDelete,
     UserPublic,
-    UserDB
+    UserDB,
+    ROLE
 )
 import api.deps as deps
 import crud
@@ -38,14 +39,24 @@ async def read_user_by_edbo_id(edbo_id: int = Path()):
 
     return await crud.read_user(edbo_id=edbo_id)
 
-@router.patch("/update/profile/{edbo_id}",
+@router.patch("/update/{edbo_id}",
               dependencies=[Security(deps.get_current_user, scopes=["admin"])])
-async def update_user(edbo_id: int, user_update: UserUpdate = Body()):
+async def update_user(edbo_id: int, user_update: dict = Body()):
     """
         Update user data by 'edbo_id'. ##### FOR ADMIN
     """
 
-    await crud.update_user(edbo_id=edbo_id, data=user_update.model_dump())
+    await crud.update_user(edbo_id=edbo_id, data=user_update)
+
+
+@router.patch("/update/all",
+              dependencies=[Security(deps.get_current_user, scopes=["admin", "teacher"])])
+async def update_users(role: ROLE, filter: dict, data: dict):
+    """
+        Update users data.
+    """
+
+    await crud.update_all_users(collection=role, filter=filter, data=data)
 
 @router.delete("/delete",
                dependencies=[Security(deps.get_current_user, scopes=["admin"])])

@@ -9,6 +9,7 @@ class StudentCreate(UserCreate):
     group: str
     start_of_study: str
     complete_of_study: str
+    mentor: str 
 
 class StudentPublic(BaseModel):
     role: str

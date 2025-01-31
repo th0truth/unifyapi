@@ -82,17 +82,16 @@ async def read_schedule_by_id(group: str, id: str):
     await get_teacher_info(lesson=lesson)
     return lesson
 
-@router.post("/create/{group}")
-async def create_lesson(group: str, body: ScheduleCreate = Body(), 
+@router.post("/create/lesson")
+async def create_lesson(body: ScheduleCreate = Body(), 
     user: dict = Security(deps.get_current_user, scopes=["teacher", "admin"])):                   
     """
         Create a lesson.
     """
 
-    ScheduleDB.COLLECTION_NAME = group
+    ScheduleDB.COLLECTION_NAME = body.group
     await ScheduleDB.create(
         {"teacher_edbo": user.get("edbo_id"),
-        "group": group,
         "lesson_id": str(uuid.uuid4()),
          **body.model_dump()})
     raise exc.CREATED(

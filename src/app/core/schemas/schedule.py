@@ -13,6 +13,7 @@ class Schedule(BaseModel):
     homework: str
 
 class ScheduleCreate(BaseModel):
+    group: str
     name: str
     position: int
     classroom: int

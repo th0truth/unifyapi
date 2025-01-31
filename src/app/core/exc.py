@@ -27,6 +27,11 @@ class UNAUTHORIZED(HTTPException):
     def __init__(self, detail = None, headers = None):
         super().__init__(status_code = status.HTTP_401_UNAUTHORIZED, detail = detail, headers = headers)
 
+class FORBIDDEN(HTTPException):
+    """403 Forbidden | The server understood the request, but cannot fulfill it."""
+    def __init__(self, detail = None, headers = None):
+        super().__init__(detail, headers, status_code=status.HTTP_403_FORBIDDEN)
+
 class NOT_FOUND(HTTPException):
     """404 Not Found""" 
     def __init__(self, detail = None, headers = None):
@@ -36,6 +41,11 @@ class METHOD_NOT_ALLOWED(HTTPException):
     """405 Method Not Allowed"""
     def __init__(self, detail = None, headers = None):
         super().__init__(status_code = status.HTTP_405_METHOD_NOT_ALLOWED, detail = detail, headers = headers)
+
+class CONFLICT(HTTPException):
+    "409 | The request could not be completed due to a conflict with the current state of the target resource."
+    def __init__(self, detail = None, headers = None):
+        super().__init__(detail, headers, status_code = status.HTTP_409_CONFLICT)
 
 class UNPROCESSABLE_CONTENT(HTTPException):
     """422 Unprocessable Content | The request was well-formed but was unable to be followed due to semantic errors."""

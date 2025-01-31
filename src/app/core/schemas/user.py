@@ -23,6 +23,7 @@ class UserCreate(User):
 
 class UserUpdate(BaseModel):
     email: EmailStr | None = None
+    password: str
 
 class UserDelete(BaseModel):
     edbo_id: int
@@ -34,16 +35,6 @@ class UserPublic(BaseModel):
     middle_name: str
     last_name: str
     role: str
-
-class UserPrivate(BaseModel):
-    edbo_id: int
-    first_name: str
-    middle_name: str
-    last_name: str
-    role: str
-    scopes: list
-    email: EmailStr | None = None
-    password: str
 
 class UserDB(MongoDB):
     DATABASE_NAME: str

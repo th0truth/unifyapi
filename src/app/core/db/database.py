@@ -3,7 +3,7 @@ from core.logger import logger
 from motor.motor_asyncio import (
     AsyncIOMotorClient,
     AsyncIOMotorDatabase,
-    AsyncIOMotorCollection   
+    AsyncIOMotorCollection
 )
 from core import exc
 from typing import (
@@ -39,6 +39,12 @@ class MongoDB:
         collection = await cls.get_collection()
         return await collection.find_one(filter)
  
+    @classmethod
+    async def update_many(cls, filter: dict, update: dict):
+        """Find documents by 'filter' in the MongoDB collection."""
+        collection = await cls.get_collection()
+        collection.update_many(filter, update={"$set": update})
+
     @classmethod
     async def update_one(cls, filter: dict, update: dict):
         """Find a document by 'filter' in the collection and update the document data."""
