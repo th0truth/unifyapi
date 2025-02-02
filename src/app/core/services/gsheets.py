@@ -1,11 +1,13 @@
-from typing import List, Any
+from typing import List
 from gspread import (
     Spreadsheet,
     Worksheet
 )
+
 import gspread
 
 from core.config import settings
+from core import exc  
 
 # Authentication by GOOGLE API KEY
 gc = gspread.api_key(settings.GOOGLE_API_KEY)
@@ -18,8 +20,13 @@ class GSheets:
     @property
     def spreadsheet(self) -> Spreadsheet:
         """Opens a spreadsheet specified by `url`."""
-        return gc.open_by_url(url=self.spreadsheet_url)
-    
+        try:
+            return gc.open_by_url(url=self.spreadsheet_url)
+        except:
+            raise exc.INTERNAL_SERVER_ERROR(
+                detail="An error occurred while processing work with Google Sheets."
+            )
+
     @property
     def worksheet(self) -> Worksheet:
         """Returns a worksheet with specified `url`."""
@@ -32,8 +39,15 @@ class GSheets:
     def worksheets(self) -> List[Worksheet]:
         """Returns a list of all `worksheets` in a spreadsheet."""
         return self.spreadsheet.worksheets()
-    
+
     @staticmethod
-    def create_spreadsheet(name: str, folder_id: str | None = None) -> Spreadsheet:
+    def create_spreadsheet(name: str, folder_name: str | None = None) -> Spreadsheet:
         """Create a new spreadsheet."""
-        return gc.create(title=name, folder_id=folder_id)
+        return gc.create(title=name, folder_id=folder_name)
+    
+    def find_by(self, *, query: str):
+        cell = self.worksheet.find(query=query)
+        if not cell:
+            raise exc.NOT_FOUND(
+                detail="The cell of spreadsheet not found.")
+        return cell

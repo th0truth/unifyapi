@@ -35,7 +35,7 @@ async def get_current_user(
     if security_scopes.scopes:
         for scope in token_data.scopes:
             if scope not in security_scopes.scopes:
-                raise exc.FORBIDDEN(
+                raise exc.UNAUTHORIZED(
                     detail="Not enough permissions")
     user = await UserDB.find_by({"edbo_id": edbo_id})
     return user

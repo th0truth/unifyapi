@@ -28,3 +28,7 @@ class StudentPrivate(BaseModel):
     group: str
     email: EmailStr | None = None
     password: str
+    class_teacher: int
+
+class StudentSubject(BaseModel):
+    subject: str
