@@ -3,4 +3,22 @@
 # decoded = jwt.decode(token, options={"verify_signature": False})
 # print(decoded)
 
-print("qwerty"[0:2])
+#print("qwerty"[0:2])
+
+# a = "2025-01-17"
+# print(f"{a[-2:]}.{a[-5:-3]}.{a[0:4]}")
+
+# from random import random
+# from time import sleep
+# def _1(i:dict):
+#     i.update({f"{random()}": random()})
+    
+# def _():
+#     i = {}
+#     for _i in range(100):
+#         _1(i=i)
+#         print(i)
+#         sleep(1)
+# _()
+"""{'0.5287665218044765': 0.2534137866657009}
+{'0.5287665218044765': 0.2534137866657009, '0.6160044217948654': 0.156090249834398}"""

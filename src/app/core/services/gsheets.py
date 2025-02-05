@@ -56,5 +56,12 @@ class GSheets:
         result = self.worksheet.get_all_values()
         if not result:
             raise exc.NOT_FOUND(
-                detail="The cell of spreadsheet not found.")
+                detail="None found all")
+        return result
+    
+    def get_row(self, row: int):
+        result = self.worksheet.row_values(row=row)
+        if not result:
+            raise exc.NOT_FOUND(
+                detail="None found row")
         return result
