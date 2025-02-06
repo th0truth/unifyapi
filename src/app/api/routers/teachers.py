@@ -31,8 +31,10 @@ async def _get_group_grades(group: str, subject: str) -> Dict[str, dict]:
 
     gs = GSheets(spreadsheet_url=url)
     data = gs.get_all()
+    print(data, url)
     for _ in range(gs.HEAD):
         data.pop(0)
+    print(data)
     # Перетворення у словник
     dates = data[0][1:]  # Дати
     students = [row[0] for row in data[1:]]  # Імена учнів

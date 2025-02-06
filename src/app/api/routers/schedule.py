@@ -50,15 +50,19 @@ async def get_grade(lesson: dict, name: str, _student_grades: dict):
             student_grades = gs.get_row(gs.find_by(query=name).row)[1:]
             
             student_grades_subject = {}
-            for item in range(len(dates)):                         #Додавання оцінок в змінну
-                student_grades_subject.update({ f"{dates[item]}" : student_grades[item]})
+            for item in range(len(dates)):                      #Додавання оцінок в змінну
+                try:
+                    student_grades_subject.update({ f"{dates[item]}" : int(student_grades[item]) })
+                except:
+                    student_grades_subject.update({ f"{dates[item]}" : None })
             _student_grades.update({ f"{subject}" : student_grades_subject})
         
         try:
             time = f"{lesson["time"][-5:-3]}.{lesson["time"][-2:]}.{lesson["time"][0:4]}" #Формат дати з бд в таблицю
             grade = _student_grades[subject][time]
-        except:
-            grade = 666
+        except Exception as e:
+            print(e)
+            grade = 0
 
     if grade is not None:
         lesson.update({"grade": grade})
