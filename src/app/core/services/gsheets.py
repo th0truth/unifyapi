@@ -16,6 +16,9 @@ class GSheets:
     def __init__(self, spreadsheet_url: str, worksheet_name: str | None = None):
         self.spreadsheet_url = spreadsheet_url
         self.worksheet_name = worksheet_name
+        self.HEAD = 5
+        self.ROW_GRADES = self.HEAD + 1
+        self.DATA_FIRST_ELEMENT = "Дата"
     
     @property
     def spreadsheet(self) -> Spreadsheet:
@@ -59,9 +62,19 @@ class GSheets:
                 detail="None found all")
         return result
     
-    def get_row(self, row: int):
+    def get_row(self, row: int)-> List[str]:
         result = self.worksheet.row_values(row=row)
         if not result:
             raise exc.NOT_FOUND(
                 detail="None found row")
         return result
+    
+    def get_cell(self, row:int, col:int) -> gspread.cell.Cell:
+        result = self.worksheet.cell(row=row, col=col)
+        if not result:
+            raise exc.NOT_FOUND(
+                detail="None found cell")
+        return result
+    
+    def add_rows(self, row:int, values:List[List]) -> None:
+        self.worksheet.insert_rows(values=values, row=row)

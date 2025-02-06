@@ -46,7 +46,7 @@ async def get_grade(lesson: dict, name: str, _student_grades: dict):
                     break
             
             gs = GSheets(spreadsheet_url=url)                     #Отримання рядку з датами і оцінками учня
-            dates = gs.get_row(4)[1:]
+            dates = gs.get_row(gs.ROW_GRADES)[1:]
             student_grades = gs.get_row(gs.find_by(query=name).row)[1:]
             
             student_grades_subject = {}
