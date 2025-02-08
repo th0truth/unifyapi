@@ -6,6 +6,7 @@ from fastapi import (
 )
 
 from core.schemas.user import UserDB
+from core.schemas.group import GroupDB
 from core.schemas.student import (
     StudentCreate,
     StudentPublic,
@@ -68,7 +69,10 @@ async def create_student(student: StudentCreate = Body()):
     """
         Create a student account.
     """
-
+    
+    group = await GroupDB.find_by({"group": student.group})
+    if not group:
+        raise exc.NOT_FOUND("The student's group not found.")
     return await crud.create_user(user=student)
 
 @router.get("/all/{group}", response_model=List[StudentPublic],

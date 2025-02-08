@@ -7,7 +7,6 @@ from fastapi import (
 )
 
 from core.schemas.user import (
-    UserUpdate,
     UserDelete,
     UserPublic,
     UserDB,
