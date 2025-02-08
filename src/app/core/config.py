@@ -52,7 +52,9 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_SECRET: str
     SECRET_KEY: str = secrets.token_hex(32)
     REDIRECT_URL: str
-    
+
+    CREDS_DIR: str
+
     PRIVATE_KEY_PEM: bytes = private_key.private_bytes(
         encoding=serialization.Encoding.PEM,
         format=serialization.PrivateFormat.PKCS8,

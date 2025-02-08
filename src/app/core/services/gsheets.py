@@ -1,14 +1,11 @@
 from typing import List
 import gspread
 
-from pathlib import Path 
-
+from core.config import settings
 from core import exc
 
-BASE_DIR = Path(__file__).parent.parent.parent.parent
-
 gc = gspread.service_account(
-    filename=BASE_DIR / "creds/creds.json"    
+    filename=settings.CREDS_DIR 
 )
 
 class GSheets:
