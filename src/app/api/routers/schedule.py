@@ -1,4 +1,3 @@
-from typing import List
 from fastapi import (
     APIRouter,
     Security,
@@ -27,7 +26,7 @@ async def get_teacher_info(lesson: dict):
     user = await UserDB.find_by({"edbo_id": edbo_id})
     lesson.update({"teacher": ScheduleTeacher(**user).model_dump()})
 
-@router.get("/my", response_model=List[Schedule])
+@router.get("/my", response_model=list[Schedule])
 async def read_my_schedule(user: dict = Depends(deps.get_current_user)):
     """
         Return the schedule for me. 
@@ -51,9 +50,9 @@ async def read_my_schedule(user: dict = Depends(deps.get_current_user)):
                     await get_teacher_info(lesson=lesson)
         case _:
             raise exc.UNPROCESSABLE_CONTENT()
-    return schedule                
+    return schedule
 
-@router.get("/{group}", response_model=List[Schedule],
+@router.get("/{group}", response_model=list[Schedule],
             dependencies=[Security(deps.get_current_user, scopes=["teacher", "admin"])])
 async def read_group_schedule(group: str, skip: int | None = None, length: int | None = None):
     """

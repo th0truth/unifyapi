@@ -8,6 +8,8 @@ from core.security.utils import Hash
 from core.schemas.user import (
     User,
     UserUpdate,
+    UserDB,
+    ROLE
 )
 from core.schemas.utils import (
     UpdatePassword,
@@ -26,6 +28,25 @@ async def get_current_user(user: User = Depends(deps.get_current_user)):
     """
    
     return user
+
+@router.get("/disciplines", response_model=list[str])
+async def get_user_disciplines(user: dict = Depends(deps.get_current_user)):
+    """
+        Return the user's disciplines.
+    """
+
+    role: ROLE = user.get("role")
+    match role:
+        case "students":
+            UserDB.COLLECTION_NAME = "groups"
+            group = await UserDB.find_by({"group": user.get("group")})
+            disciplines = group.get("disciplines")
+        case "teachers":
+            disciplines = user.get("disciplines")
+        case _:
+            raise exc.NOT_FOUND(
+                detail="Something went wrong...")
+    return disciplines
 
 @router.patch("/add-email")
 async def add_user_email(
