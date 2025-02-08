@@ -11,6 +11,7 @@ from core.schemas.user import (
     UserDB,
     ROLE
 )
+from core.schemas.group import GroupDB
 from core.schemas.utils import (
     UpdatePassword,
     PasswordRecovery
@@ -38,15 +39,14 @@ async def get_user_disciplines(user: dict = Depends(deps.get_current_user)):
     role: ROLE = user.get("role")
     match role:
         case "students":
-            UserDB.COLLECTION_NAME = "groups"
-            group = await UserDB.find_by({"group": user.get("group")})
+            group = await GroupDB.find_by({"group": user.get("group")})
             disciplines: dict = group.get("disciplines")
+            disciplines = [j for j in disciplines.keys()]
         case "teachers":
             disciplines = user.get("disciplines")
         case _:
             raise exc.NOT_FOUND(
                 detail="Something went wrong...")
-    disciplines = [j for j in disciplines.keys()]
     return disciplines
 
 @router.patch("/add-email")
