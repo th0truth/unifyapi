@@ -40,12 +40,13 @@ async def get_user_disciplines(user: dict = Depends(deps.get_current_user)):
         case "students":
             UserDB.COLLECTION_NAME = "groups"
             group = await UserDB.find_by({"group": user.get("group")})
-            disciplines = group.get("disciplines")
+            disciplines: dict = group.get("disciplines")
         case "teachers":
             disciplines = user.get("disciplines")
         case _:
             raise exc.NOT_FOUND(
                 detail="Something went wrong...")
+    disciplines = [j for j in disciplines.keys()]
     return disciplines
 
 @router.patch("/add-email")

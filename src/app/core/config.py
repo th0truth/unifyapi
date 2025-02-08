@@ -15,11 +15,9 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file="../.env",
         env_ignore_empty=True,
-        extra="ignore"
+        extra="ignore",
     )
     
-    # ENVIRONMENT: Literal["local", "production"] = "local"
- 
     # API settings
     
     NAME: str
@@ -49,13 +47,12 @@ class Settings(BaseSettings):
     GMAIL_NAME: str
     GMAIL_PASSWORD: str
 
+    GOOGLE_API_KEY: str
     GOOGLE_CLIENT_ID: str
     GOOGLE_CLIENT_SECRET: str
     SECRET_KEY: str = secrets.token_hex(32)
     REDIRECT_URL: str
     
-    GOOGLE_API_KEY: str
-
     PRIVATE_KEY_PEM: bytes = private_key.private_bytes(
         encoding=serialization.Encoding.PEM,
         format=serialization.PrivateFormat.PKCS8,
@@ -64,5 +61,5 @@ class Settings(BaseSettings):
     PUBLIC_KEY_PEM: bytes = private_key.public_key().public_bytes(
         encoding=serialization.Encoding.PEM,
         format=serialization.PublicFormat.SubjectPublicKeyInfo)
-    
+
 settings = Settings()

@@ -90,16 +90,17 @@ async def update_user(*, edbo_id: int, data: dict):
     raise exc.OK(
         detail="The user account has been updated.")
 
-async def delete_user(*, user: UserDelete):
+async def delete_user(*, user: dict):
     """
         Delete user from the MongoDB collection by 'edbo_id'.
     """
-    user = await UserDB.find_by({"edbo_id": user.edbo_id})
+    
     if not user:
         raise exc.NOT_FOUND(
             detail="User not found.")
-    await UserDB.delete_document_by({"edbo_id": user.edbo_id})
-    raise exc.OK()
+    await UserDB.delete_document_by({"edbo_id": user.get("edbo_id")})
+    raise exc.OK(
+        detail="The user account has been deleted")
 
 async def authenticate_user(*, username: str | int, plain_pwd: str) -> dict:
     """

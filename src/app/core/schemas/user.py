@@ -26,8 +26,7 @@ class UserUpdate(BaseModel):
     password: str
 
 class UserDelete(BaseModel):
-    edbo_id: int
-    email: EmailStr | None = None
+    username: str
 
 class UserPublic(BaseModel):
     edbo_id: int

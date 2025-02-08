@@ -60,9 +60,10 @@ async def update_users(role: ROLE, filter: dict, data: dict):
 
 @router.delete("/delete",
                dependencies=[Security(deps.get_current_user, scopes=["admin"])])
-async def delete_user(user: UserDelete = Body()):
+async def delete_user(creds: UserDelete = Body()):
     """
-        Delete an exiting user account. ##### FOR ADMIN
+        Delete an exiting user account.
     """
-   
+
+    user = await crud.get_user_by_username(username=creds.username)
     return await crud.delete_user(user=user)

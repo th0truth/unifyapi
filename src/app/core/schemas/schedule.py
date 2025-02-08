@@ -3,7 +3,6 @@ from core.db.database import MongoDB
 
 class Schedule(BaseModel):
     teacher: dict | None = None
-    group: str
     name: str
     lesson_id: str
     position: int

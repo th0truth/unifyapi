@@ -5,7 +5,7 @@ from .routers import (
     user,
     users,
     students,
-    schedule
+    schedule,
 )
 
 api_router = APIRouter()

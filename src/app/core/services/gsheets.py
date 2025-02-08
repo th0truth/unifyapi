@@ -1,16 +1,15 @@
 from typing import List
-from gspread import (
-    Spreadsheet,
-    Worksheet
-)
-
 import gspread
 
-from core.config import settings
-from core import exc  
+from pathlib import Path 
 
-# Authentication by GOOGLE API KEY
-gc = gspread.api_key(settings.GOOGLE_API_KEY)
+from core import exc
+
+BASE_DIR = Path(__file__).parent.parent.parent.parent
+
+gc = gspread.service_account(
+    filename=BASE_DIR / "creds/creds.json"    
+)
 
 class GSheets:
     def __init__(self, spreadsheet_url: str, worksheet_name: str | None = None):
@@ -18,7 +17,7 @@ class GSheets:
         self.worksheet_name = worksheet_name
     
     @property
-    def spreadsheet(self) -> Spreadsheet:
+    def spreadsheet(self) -> gspread.Spreadsheet:
         """Opens a spreadsheet specified by `url`."""
         try:
             return gc.open_by_url(url=self.spreadsheet_url)
@@ -28,7 +27,7 @@ class GSheets:
             )
 
     @property
-    def worksheet(self) -> Worksheet:
+    def worksheet(self) -> gspread.Worksheet:
         """Returns a worksheet with specified `url`."""
         if not self.worksheet_name:
             return self.spreadsheet.get_worksheet(0)
@@ -36,14 +35,14 @@ class GSheets:
             return self.spreadsheet.worksheet(self.worksheet_name)
 
     @property
-    def worksheets(self) -> List[Worksheet]:
+    def worksheets(self) -> List[gspread.Worksheet]:
         """Returns a list of all `worksheets` in a spreadsheet."""
         return self.spreadsheet.worksheets()
 
     @staticmethod
-    def create_spreadsheet(name: str, folder_name: str | None = None) -> Spreadsheet:
+    def create_spreadsheet(name: str) -> gspread.Spreadsheet:
         """Create a new spreadsheet."""
-        return gc.create(title=name, folder_id=folder_name)
+        gc.create(title=name)
     
     def find_by(self, *, query: str):
         cell = self.worksheet.find(query=query)

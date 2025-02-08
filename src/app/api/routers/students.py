@@ -23,35 +23,43 @@ router = APIRouter(tags=["Students"])
 
 UserDB.COLLECTION_NAME = "students"
 
-async def _get_student_grades(student_name: str, group: str, subject: str) -> dict:
-    UserDB.COLLECTION_NAME = "teachers"
-    teacher = await UserDB.find_by(
-        {f"groups.{group}.{subject}": {"$exists": True}})
-    if not teacher:
-        raise exc.NOT_FOUND("Teacher not found.") 
-    groups: dict = teacher.get("groups")
-    for _group, _subject in groups.items():
-        if _group == group:
-            url: str = _subject[subject]
-            break
+async def get_grades(student_name: str, group_name: str, subject: str) -> dict:
+    UserDB.COLLECTION_NAME = "groups"
+    group: dict = await UserDB.find_by({"group": group_name})
+    if not group:
+        raise exc.NOT_FOUND("The student's group was not found")
+    try:
+        url = group["disciplines"][subject]
+    except:
+        raise exc.INTERNAL_SERVER_ERROR("An error occured while getting discipline.") 
 
     gs = GSheets(spreadsheet_url=url)
-    date = gs.worksheet.row_values(row=4)[1:]
+
+    date = gs.worksheet.row_values(row=6)[1:]
     cell = gs.find_by(query=student_name)
+
     grades = gs.worksheet.row_values(cell.address)[1:]
     if not grades:
         raise exc.NOT_FOUND(
             detail="The specified subject for student grades was not found.")
-    grade_list = {}
+    
+    counter, avg = 0, 0
+    grades_list = {}
     try:
-        for e, grade in enumerate(grades):
+        for j, grade in enumerate(grades):
             if not grade:
                 continue
             elif not grade in [" ", "", "Н"]:
                 grade = int(grade)
-            grade_list.update({date[e]: grade})
-        return grade_list 
-    except:
+                counter += 1 
+                avg += grade
+            grades_list.update({date[j]: grade})
+        return {
+            "grades": grades_list,
+            "AVG": round((avg / counter), 2)
+        }
+    except Exception as err:
+        print(err) 
         raise exc.INTERNAL_SERVER_ERROR(
             detail="Something went wrong. Try again later.")
 
@@ -85,17 +93,18 @@ async def count_students(group: str):
         raise exc.NOT_FOUND(detail="There are no students in this group.")
     return count
 
-@router.post("/my-grades")
-async def get_my_grades(user: dict = Security(deps.get_current_user, scopes=["student"]), subject: StudentSubject = Body()):
+@router.post("/grades/my")
+async def get_my_grades(user: dict = Security(deps.get_current_user, scopes=["student"]), body: StudentSubject = Body()):
     """
         Return the student subject's grades.
     """
-
+    
     student = StudentPrivate(**user)
-    grades = await _get_student_grades(
-        student_name=f"{student.last_name} {student.first_name} {student.middle_name}",
-        group=student.group,
-        subject=subject.subject 
+    grades = await get_grades(
+        student_name="{} {} {}".format(
+            student.last_name, student.first_name, student.middle_name),
+        group_name=student.group,
+        subject=body.subject
     )
     return grades
 
@@ -107,14 +116,15 @@ async def get_student_grades(edbo_id: int = Body(), subject: str = Body()):
     """
 
     UserDB.COLLECTION_NAME = "students"
-    student = await UserDB.find_by({"edbo_id": edbo_id})
-    if not student:
+    user = await UserDB.find_by({"edbo_id": edbo_id})
+    if not user:
         raise exc.NOT_FOUND("Student not found.")
-    student = StudentPrivate(**student)
 
-    grades = await _get_student_grades(
-        student_name=f"{student.last_name} {student.first_name} {student.middle_name}",
-        group=student.group,
+    student = StudentPrivate(**user)
+    grades = await get_grades(
+        student_name="{} {} {}".format(
+            student.last_name, student.first_name, student.middle_name),
+        group_name=student.group,
         subject=subject
     )
     return grades
