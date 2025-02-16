@@ -1,5 +1,12 @@
-from pydantic import BaseModel, EmailStr
-from .user import UserCreate
+from pydantic import BaseModel
+from .user import User, UserCreate
+
+class Student(User):
+    role: str = "students"
+    scopes: list = ["students"]
+    course: int
+    group: str
+    class_teacher_edbo: int
 
 class StudentCreate(UserCreate):
     role: str = "students"
@@ -9,26 +16,4 @@ class StudentCreate(UserCreate):
     group: str
     start_of_study: str
     complete_of_study: str
-    mentor: str 
-
-class StudentPublic(BaseModel):
-    role: str
-    edbo_id: int
-    first_name: str
-    middle_name: str
-    last_name: str
-    group: str
-
-class StudentPrivate(BaseModel):
-    edbo_id: int
-    first_name: str
-    middle_name: str
-    last_name: str
-    course: int
-    group: str
-    email: EmailStr | None = None
-    password: str
-    class_teacher: int
-
-class StudentSubject(BaseModel):
-    subject: str
+    class_teacher_edbo: int

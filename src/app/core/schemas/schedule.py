@@ -11,15 +11,6 @@ class Schedule(BaseModel):
     topic: str
     homework: str
 
-class ScheduleCreate(BaseModel):
-    group: str
-    name: str
-    position: int
-    classroom: int
-    time: str
-    topic: str
-    homework: str
-
 class ScheduleTeacher(BaseModel):
     edbo_id: int
     first_name: str
@@ -28,6 +19,18 @@ class ScheduleTeacher(BaseModel):
     specialities: list
     disciplines: list
 
+class Lesson(BaseModel):
+    lesson: str
+
+class LessonCreate(BaseModel):
+    group: str
+    name: str
+    position: int
+    classroom: int
+    time: str
+    topic: str
+    homework: str
+
 class ScheduleDB(MongoDB):
-    DATABASE_NAME: str = "schedules"
-    COLLECTION_NAME: str = "ipz-12"
+    DATABASE_NAME: str = "schedule"
+    COLLECTION_NAME: str

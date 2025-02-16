@@ -12,8 +12,12 @@ class User(BaseModel):
     middle_name: str
     last_name: str 
     date_of_birth: str
-    phone_number: List[int]
     role: ROLE
+
+class UserPrivate(User):
+    acc_date: datetime
+    email: EmailStr | None = None
+    phone_number: List[int] | None = None
     scopes: list
     password: str
 
@@ -27,13 +31,6 @@ class UserUpdate(BaseModel):
 
 class UserDelete(BaseModel):
     username: str
-
-class UserPublic(BaseModel):
-    edbo_id: int
-    first_name: str
-    middle_name: str
-    last_name: str
-    role: str
 
 class UserDB(MongoDB):
     DATABASE_NAME: str

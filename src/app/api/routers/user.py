@@ -6,13 +6,12 @@ from fastapi import (
 
 from core.security.utils import Hash
 from core.schemas.user import (
-    User,
+    UserPrivate,
     UserUpdate,
-    UserDB,
     ROLE
 )
 from core.schemas.group import GroupDB
-from core.schemas.utils import (
+from core.schemas.etc import (
     UpdatePassword,
     PasswordRecovery
 )
@@ -22,10 +21,10 @@ import crud
 
 router = APIRouter(tags=["User"])
 
-@router.get("/me", response_model=User)
-async def get_current_user(user: User = Depends(deps.get_current_user)):
+@router.get("/me", response_model=UserPrivate)
+async def get_current_user(user: dict = Depends(deps.get_current_user)):
     """
-        Return the user's private data.
+        Read the user's private data.
     """
    
     return user
@@ -33,7 +32,7 @@ async def get_current_user(user: User = Depends(deps.get_current_user)):
 @router.get("/disciplines", response_model=list[str])
 async def get_user_disciplines(user: dict = Depends(deps.get_current_user)):
     """
-        Return the user's disciplines.
+        Read the user's disciplines.
     """
 
     role: ROLE = user.get("role")

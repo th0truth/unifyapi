@@ -34,7 +34,7 @@ class MongoDB:
         return [j for j in await cursor][skip:]
 
     @classmethod
-    async def find_by(cls, filter: Any | None = None) -> Dict[str, Any]:
+    async def find_by(cls, filter: dict | None = None) -> Dict[str, Any]:
         """Find a document by 'filter' in the MongoDB collection."""
         collection = await cls.get_collection()
         return await collection.find_one(filter)

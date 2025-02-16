@@ -7,6 +7,7 @@ from .routers import (
     groups,
     students,
     schedule,
+    lessons
 )
 
 api_router = APIRouter()
@@ -18,3 +19,4 @@ api_router.include_router(groups.router, prefix="/groups")
 api_router.include_router(students.router, prefix="/students")
 api_router.include_router(teachers.router, prefix="/teachers")
 api_router.include_router(schedule.router, prefix="/schedule")
+api_router.include_router(lessons.router, prefix="/lessons")

@@ -1,11 +1,3 @@
-from core.security.utils import Hash
-from core.schemas.user import (
-    UserCreate,
-    UserDelete,
-    UserDB,
-    ROLE
-)
-from core import exc
 from typing import (
     List,
     Dict,
@@ -13,6 +5,19 @@ from typing import (
 )
 
 from core.config import settings
+from core.security.utils import Hash
+from core.services.gsheets import GSheets
+ 
+from core.schemas.user import (
+    UserCreate,
+    UserDB,
+    ROLE
+)
+from core.schemas.group import (
+    GroupDB
+)
+
+from core import exc
 
 async def get_user_by_username(*, username: str) -> dict | None:
     """
@@ -30,6 +35,13 @@ async def get_user_by_username(*, username: str) -> dict | None:
         if user:
             break
     return user
+
+async def get_user_fullname(*, user: dict) -> str:
+    """
+        Return the full name of the user.
+    """
+    return "{} {} {}".format(
+        user.get("last_name"), user.get("first_name"), user.get("middle_name"))
 
 async def create_user(*, user: UserCreate) -> bool:
     """
@@ -66,16 +78,16 @@ async def read_user(*, edbo_id: int) -> Dict[str, Any]:
         raise exc.NOT_FOUND(detail="User not found.")
     return user 
 
-async def update_all_users(*, collection: ROLE, filter: dict, data: dict):
+async def update_all_users(*, collection: ROLE, filter: dict, update: dict):
     """
         Update users data.
     """
     UserDB.COLLECTION_NAME = collection
     await UserDB.update_many(
         filter=filter,
-        update=data)
+        update=update)
     raise exc.OK(
-        detail="Users account has been updated.")
+        detail="User accounts has been updated.")
 
 async def update_user(*, edbo_id: int, data: dict):
     """
@@ -118,3 +130,42 @@ async def authenticate_user(*, username: str | int, plain_pwd: str) -> dict:
         if scope not in settings.scopes:
             raise exc.UNAUTHORIZED("Invalid user credentials.")
     return user
+
+async def get_grades(*, student_name: str, group: str, discipline: str) -> dict:
+    group: dict = await GroupDB.find_by({"group": group})
+    if not group:
+        raise exc.NOT_FOUND("The student's group was not found")
+    try:
+        url = group["disciplines"][discipline]
+    except:
+        raise exc.INTERNAL_SERVER_ERROR("An error occured while getting discipline.") 
+
+    gs = GSheets(spreadsheet_url=url)
+
+    date = gs.worksheet.row_values(row=6)[1:]
+    cell = gs.find_by(query=student_name)
+
+    grades = gs.worksheet.row_values(cell.address)[1:]
+    if not grades:
+        raise exc.NOT_FOUND(
+            detail="The specified subject for student grades was not found.")
+    
+    counter, avg = 0, 0
+    grades_list = {}
+    try:
+        for j, grade in enumerate(grades):
+            if not grade:
+                continue
+            elif not grade in [" ", "", "Н"]:
+                grade = int(grade)
+                counter += 1 
+                avg += grade
+            grades_list.update({date[j]: grade})
+        return {
+            "grades": grades_list,
+            "average": round((avg / counter), 2)
+        }
+    except Exception as err:
+        print(err) 
+        raise exc.INTERNAL_SERVER_ERROR(
+            detail="Something went wrong. Try again later.")

@@ -9,15 +9,14 @@ class TokenData(BaseModel):
     scopes: list
 
 class UpdatePassword(BaseModel):
-    current_password: str = Field(..., min_length=8, max_length=16)
-    new_password: str = Field(..., min_length=8, max_length=16)
+    current_password: str = Field(..., min_length=8)
+    new_password: str = Field(..., min_length=8)
 
 class PasswordRecovery(BaseModel):
     email: str
     new_password: str
-
+    
 class SetGrade(BaseModel):
-    subject: str
+    lesson: str
     edbo_id: int
     grade: int
-    date: str | None = None

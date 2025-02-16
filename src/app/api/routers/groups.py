@@ -1,10 +1,13 @@
 from fastapi import (
     APIRouter,
     Security,
-    Body,
+    Body
 )
 
-from core.schemas.user import ROLE
+from core.schemas.user import (
+    UserDB,
+    ROLE
+)
 from core.schemas.group import (
     Group,
     GroupDB
@@ -17,6 +20,10 @@ router = APIRouter(tags=["Groups"])
 
 @router.get("/read/my", response_model=Group)
 async def read_my_group(user: dict = Security(deps.get_current_user, scopes=["student", "teacher"])):
+    """
+        Retrieves the student group.  
+    """
+    
     role: ROLE = user.get("role")
     match role:
         case "students":
@@ -24,25 +31,34 @@ async def read_my_group(user: dict = Security(deps.get_current_user, scopes=["st
             if not group:
                 raise exc.NOT_FOUND(
                     detail="The student's group was not found")
+            UserDB.COLLECTION_NAME = "teachers"
+            group.update({
+                "disciplines": [discipline for discipline in group.get("disciplines")],
+                "class_teacher": await UserDB.find_by({"edbo_id": group.get("class_teacher_edbo")})})
         case "teachers":
             group = await GroupDB.find_by({"class_teacher_edbo": user.get("edbo_id")})
             if not group:
                 raise exc.NOT_FOUND(
                     detail="Your don't have your own group.")
+        case _:
+            raise exc.INTERNAL_SERVER_ERROR()
     return group
 
 @router.get("/read/all", response_model=list[Group],
             dependencies=[Security(deps.get_current_user, scopes=["teacher", "admin"])])
 async def read_groups():
-    groups = await GroupDB.find_many()
-    return groups
+    """
+        Retrieves all student groups. 
+    """
+
+    return await GroupDB.find_many()
 
 @router.post("/create", dependencies=[Security(deps.get_current_user, scopes=["admin"])])
-async def create_group(group: Group = Body()):
-    if await GroupDB.find_by({"group": group.group}):
+async def create_group(body: Group = Body()):
+    if await GroupDB.find_by({"group": body.group}):
         raise exc.CONFLICT(
             detail="Group already exits.")
-    await GroupDB.create(doc=group.model_dump())
+    await GroupDB.create(doc=body.model_dump())
     raise exc.CREATED(
         detail="Group created successfully.")
 

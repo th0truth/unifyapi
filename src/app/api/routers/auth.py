@@ -9,7 +9,7 @@ from pathlib import Path
 from core.config import settings
 from core.security.jwt import OAuthJWTBearer
 from core.schemas.user import UserDB
-from core.schemas.utils import Token
+from core.schemas.etc import Token
 from core import exc
 import requests
 import crud

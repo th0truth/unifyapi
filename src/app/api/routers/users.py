@@ -7,8 +7,9 @@ from fastapi import (
 )
 
 from core.schemas.user import (
+    User,
+    UserPrivate,
     UserDelete,
-    UserPublic,
     UserDB,
     ROLE
 )
@@ -19,7 +20,7 @@ router = APIRouter(tags=["Users"])
 
 UserDB.DATABASE_NAME = "users"
 
-@router.get("/read/{role}/all", response_model=List[UserPublic],
+@router.get("/read/{role}/all", response_model=List[UserPrivate],
            dependencies=[Security(deps.get_current_user, scopes=["admin"])])
 async def read_users(role: str, filter: str | None = None, value: Any = None, skip: int = 0, length: int | None = None):
     """
@@ -29,7 +30,7 @@ async def read_users(role: str, filter: str | None = None, value: Any = None, sk
     return await crud.read_users(
         role=role, filter=filter, value=value, skip=skip, length=length)
 
-@router.get("/read/{edbo_id}", response_model=UserPublic, 
+@router.get("/read/{edbo_id}", response_model=User, 
             dependencies=[Security(deps.get_current_user, scopes=["teacher", "admin"])])
 async def read_user_by_edbo_id(edbo_id: int = Path()):
     """
@@ -42,20 +43,20 @@ async def read_user_by_edbo_id(edbo_id: int = Path()):
               dependencies=[Security(deps.get_current_user, scopes=["admin"])])
 async def update_user(edbo_id: int, user_update: dict = Body()):
     """
-        Update user data by 'edbo_id'. ##### FOR ADMIN
+        Update user data by 'edbo_id'.
     """
 
     await crud.update_user(edbo_id=edbo_id, data=user_update)
 
 
-@router.patch("/update/all",
+@router.patch("/update/all/",
               dependencies=[Security(deps.get_current_user, scopes=["admin", "teacher"])])
-async def update_users(role: ROLE, filter: dict, data: dict):
+async def update_users(role: ROLE, filter: dict, update: dict):
     """
         Update users data.
     """
 
-    await crud.update_all_users(collection=role, filter=filter, data=data)
+    await crud.update_all_users(collection=role, filter=filter, update=update)
 
 @router.delete("/delete",
                dependencies=[Security(deps.get_current_user, scopes=["admin"])])

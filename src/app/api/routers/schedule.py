@@ -2,29 +2,25 @@ from fastapi import (
     APIRouter,
     Security,
     Depends,
-    Body
 )
-import uuid
 
 from core.schemas.user import UserDB, ROLE
 from core.schemas.schedule import (
     Schedule,
-    ScheduleCreate,
     ScheduleTeacher,
     ScheduleDB
 )
+
 from core import exc
 import api.deps as deps
 
 router = APIRouter(tags=["Schedule"])
 
-ScheduleDB.DATABASE_NAME = "schedule"
-
-async def get_teacher_info(lesson: dict):
+async def get_teacher_info(lesson: dict) -> dict:
     UserDB.COLLECTION_NAME = "teachers"
     edbo_id: int = lesson.pop("teacher_edbo")
     user = await UserDB.find_by({"edbo_id": edbo_id})
-    lesson.update({"teacher": ScheduleTeacher(**user).model_dump()})
+    return ScheduleTeacher(**user).model_dump()
 
 @router.get("/my", response_model=list[Schedule])
 async def read_my_schedule(user: dict = Depends(deps.get_current_user)):
@@ -39,7 +35,8 @@ async def read_my_schedule(user: dict = Depends(deps.get_current_user)):
             ScheduleDB.COLLECTION_NAME = group
             schedule = await ScheduleDB.find_many(filter="group", value=group)
             for lesson in schedule:
-                await get_teacher_info(lesson=lesson)
+                lesson.update(
+                    {"teacher": await get_teacher_info(lesson=lesson)})
         case "teachers":
             collections = await ScheduleDB.get_collections()
             for collection in collections:
@@ -49,7 +46,7 @@ async def read_my_schedule(user: dict = Depends(deps.get_current_user)):
                 for lesson in schedule:
                     await get_teacher_info(lesson=lesson)
         case _:
-            raise exc.UNPROCESSABLE_CONTENT()
+            raise exc.INTERNAL_SERVER_ERROR()
     return schedule
 
 @router.get("/{group}", response_model=list[Schedule],
@@ -80,19 +77,29 @@ async def read_schedule_by_id(group: str, id: str):
         raise exc.NOT_FOUND(detail="Lesson not found.")
     await get_teacher_info(lesson=lesson)
     return lesson
-
-@router.post("/create/lesson")
-async def create_lesson(body: ScheduleCreate = Body(), 
-    user: dict = Security(deps.get_current_user, scopes=["teacher", "admin"])):                   
-    """
-        Create a lesson.
-    """
-
-    ScheduleDB.COLLECTION_NAME = body.group
-    await ScheduleDB.create(
-        {"teacher_edbo": user.get("edbo_id"),
-        "lesson_id": str(uuid.uuid4()),
-         **body.model_dump()})
-    raise exc.CREATED(
-        detail="The lesson has been created successfully."
-    )
+# 
+# @router.patch("/update/{group}",
+            #   dependencies=[Security(deps.get_current_user, scopes=["teacher", "admin"])])
+# async def update_schedule(group: str, date: str | None = None, update: dict = Body()):
+    # groups = await ScheduleDB.get_collections()
+    # if group not in groups:
+        # raise exc.NOT_FOUND(
+            # detail="The given group not found.")    
+    # ScheduleDB.COLLECTION_NAME = group
+    # await ScheduleDB.update_one({"time": date}, update=update)
+    # raise exc.OK(
+        # detail="The user schedule has been updated.")
+# 
+# @router.patch("/update/{group}/all",
+            #   dependencies=[Security(deps.get_current_user, scopes=["teacher", "admin"])])
+# async def update_entire_schedule(group: str, filter: dict, data: dict):
+    # """
+        # Update users data.
+    # """
+# 
+    # groups = await ScheduleDB.get_collections()
+    # if group not in groups:
+        # raise exc.NOT_FOUND(
+            # detail="The given group not found.")
+    # ScheduleDB.COLLECTION_NAME = group
+    # await ScheduleDB.update_many(filter=filter, data=data)

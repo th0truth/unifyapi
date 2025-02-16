@@ -1,14 +1,15 @@
-from core.db.database import MongoDB
-
 from pydantic import BaseModel
 
+from core.db.database import MongoDB
+from .teacher import Teacher 
+
 class Group(BaseModel):
-    group: str
     degree: str
     course: int
-    disciplines: dict
-    class_teacher_edbo: int
+    group: str
     specialty: str
+    disciplines: list | dict
+    class_teacher: Teacher | None = None
 
 class GroupDelete(BaseModel):
     group: str

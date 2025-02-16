@@ -5,7 +5,9 @@ from core.config import settings
 from core import exc
 
 gc = gspread.service_account(
-    filename=settings.CREDS_DIR 
+    filename=settings.CREDS_DIR,
+    scopes=["https://www.googleapis.com/auth/spreadsheets",
+            "https://www.googleapis.com/auth/drive"] 
 )
 
 class GSheets:
