@@ -32,7 +32,7 @@ class Settings(BaseSettings):
     DB_PASSWORD: str
     DB_HOSTNAME: str
     
-    # Authorization
+    # OAuth | JWT
 
     JWT_ALGORITHM: str = "RS256"
     JWT_EXPIRE_MIN: int | float
@@ -44,16 +44,7 @@ class Settings(BaseSettings):
         "admin": ""
     }
 
-    GMAIL_NAME: str
-    GMAIL_PASSWORD: str
-
-    GOOGLE_API_KEY: str
-    GOOGLE_CLIENT_ID: str
-    GOOGLE_CLIENT_SECRET: str
     SECRET_KEY: str = secrets.token_hex(32)
-    REDIRECT_URL: str
-
-    CREDS_DIR: str
 
     PRIVATE_KEY_PEM: bytes = private_key.private_bytes(
         encoding=serialization.Encoding.PEM,

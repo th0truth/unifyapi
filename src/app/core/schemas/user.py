@@ -1,10 +1,15 @@
-from pydantic import BaseModel, Field, EmailStr
-from datetime import datetime
 from typing import Literal, List
+from datetime import datetime
+from pydantic import (
+    BaseModel,
+    EmailStr,
+    Field
+)
 
 from core.db.database import MongoDB
 
 ROLE = Literal["students", "teachers", "admins"]
+DEGREE = Literal["bachelor", "skilled_worker"] 
 
 class User(BaseModel):
     edbo_id: int
@@ -33,5 +38,5 @@ class UserDelete(BaseModel):
     username: str
 
 class UserDB(MongoDB):
-    DATABASE_NAME: str
+    DATABASE_NAME: str = "users"
     COLLECTION_NAME: str

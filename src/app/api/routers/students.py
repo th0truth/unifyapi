@@ -1,8 +1,13 @@
-from typing import List, Dict, Any
+from typing import (
+    List,
+    Dict,
+    Any
+)
 from fastapi import (
     APIRouter,
     Security,
-    Body,
+    Query,
+    Body
 )
 
 from core.schemas.user import UserDB
@@ -10,6 +15,10 @@ from core.schemas.group import GroupDB
 from core.schemas.student import (
     Student,
     StudentCreate,
+)
+
+from core.schemas.grade import (
+    Grade,
 )
 
 import api.deps as deps
@@ -52,52 +61,28 @@ async def count_students(group: str):
         raise exc.NOT_FOUND(detail="There are no students in this group.")
     return count
 
-@router.post("/get/grades", response_model=Dict[str, Any],
+@router.post("/grades/{edbo_id}",
             dependencies=[Security(deps.get_current_user, scopes=["teacher", "admin"])])
-async def get_student_grades(edbo_id: int = Body(), lesson: str = Body()):
+async def get_student_grades(edbo_id: int, date: str | None = Query(None), body: Grade = Body()):
     """
-        Return the specified student's subject grades. 
+        Return the specified student's subject grades.
     """
 
-    UserDB.COLLECTION_NAME = "students"
-    user = await UserDB.find_by({"edbo_id": edbo_id})
-    if not user:
-        raise exc.NOT_FOUND("Student not found.")
-    grades = await crud.get_grades(
-        student_name=await crud.get_user_fullname(user=user),
-        group_name=user.get("group"),
-        lesson=lesson
+    return await crud.get_grades(
+        username=edbo_id,
+        subject=body.subject,
+        date=date
     )
-    return grades
 
-@router.post("/all/grades/{edbo_id}", response_model=Dict[str, Any],
+
+@router.get("/grades/{edbo_id}/all",
             dependencies=[Security(deps.get_current_user, scopes=["teacher", "admin"])])
-async def get_student_all_grades(edbo_id: int):
+async def get_student_all_grades(edbo_id: int, date: str | None = Query(None)):
     """
-        Return the specified student's subject grades. 
+        Return all subject grades. 
     """
 
-    UserDB.COLLECTION_NAME = "students"
-    user = await UserDB.find_by({"edbo_id": edbo_id})
-    if not user:
-        raise exc.NOT_FOUND("Student not found.")
-    student = Student(**user)
-    group = await GroupDB.find_by({"group": student.group})
-    if not group:
-        raise exc.NOT_FOUND("Group not found")
-
-    disciplines = group.get("disciplines")
-    gradebook = {}
-    try:
-        for discipline in disciplines:
-            grades = await crud.get_grades(
-                student_name=await crud.get_user_fullname(user=user),
-                group=student.group,
-                discipline=discipline
-            )
-            gradebook.update({discipline: grades})
-    except:
-        raise exc.INTERNAL_SERVER_ERROR(
-            detail={"error": "Something went wrong while retrieving grades."})
-    print(gradebook)
-    return gradebook
+    return await crud.get_grades(
+        username=edbo_id,
+        date=date
+    )

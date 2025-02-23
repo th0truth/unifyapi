@@ -15,8 +15,3 @@ class UpdatePassword(BaseModel):
 class PasswordRecovery(BaseModel):
     email: str
     new_password: str
-    
-class SetGrade(BaseModel):
-    lesson: str
-    edbo_id: int
-    grade: int

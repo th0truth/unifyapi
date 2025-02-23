@@ -1,9 +1,9 @@
-from pydantic import BaseModel
 from .user import User, UserCreate
 
 class Student(User):
     role: str = "students"
     scopes: list = ["students"]
+    degree: str
     course: int
     group: str
     class_teacher_edbo: int

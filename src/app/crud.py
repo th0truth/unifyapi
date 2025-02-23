@@ -6,23 +6,23 @@ from typing import (
 
 from core.config import settings
 from core.security.utils import Hash
-from core.services.gsheets import GSheets
  
 from core.schemas.user import (
     UserCreate,
     UserDB,
     ROLE
 )
-from core.schemas.group import (
-    GroupDB
+from core.schemas.grade import (
+    GradeDB
 )
 
 from core import exc
 
-async def get_user_by_username(*, username: str) -> dict | None:
+async def get_user_by_username(*, username: str | str) -> dict | None:
     """
         Find user by username. e.g 'edbo_id' or 'email' 
     """
+    
     collections = await UserDB.get_collections()
     for collection in collections:
         UserDB.COLLECTION_NAME = collection
@@ -36,10 +36,11 @@ async def get_user_by_username(*, username: str) -> dict | None:
             break
     return user
 
-async def get_user_fullname(*, user: dict) -> str:
+async def get_user_fullname(*, user: dict) -> str: 
     """
         Return the full name of the user.
     """
+
     return "{} {} {}".format(
         user.get("last_name"), user.get("first_name"), user.get("middle_name"))
 
@@ -47,6 +48,7 @@ async def create_user(*, user: UserCreate) -> bool:
     """
         Create a new user in the MongoDB collection.
     """
+
     if await UserDB.find_by({"edbo_id": user.edbo_id}):
         raise exc.UNPROCESSABLE_CONTENT(detail="User already exits.")
     UserDB.COLLECTION_NAME = user.role
@@ -58,6 +60,7 @@ async def count_users(*, collection: ROLE, filter: dict):
     """
         Read count of users.
     """
+
     UserDB.COLLECTION_NAME = collection
     return await UserDB.count_documents(filter)
 
@@ -65,6 +68,7 @@ async def read_users(*, role: ROLE, filter: str | None = None, value: Any, skip:
     """
         Read all users from the MongoDB collection.
     """
+
     UserDB.COLLECTION_NAME = role
     return await UserDB.find_many(
         filter=filter, value=value, skip=skip, length=length)
@@ -73,6 +77,7 @@ async def read_user(*, edbo_id: int) -> Dict[str, Any]:
     """
         Read user from the MongoDB collection.
     """
+
     user = await get_user_by_username(username=edbo_id)
     if not user:
         raise exc.NOT_FOUND(detail="User not found.")
@@ -82,6 +87,7 @@ async def update_all_users(*, collection: ROLE, filter: dict, update: dict):
     """
         Update users data.
     """
+
     UserDB.COLLECTION_NAME = collection
     await UserDB.update_many(
         filter=filter,
@@ -93,6 +99,7 @@ async def update_user(*, edbo_id: int, data: dict):
     """
         Update user data.
     """
+
     user = await get_user_by_username(username=edbo_id)
     if not user:
        raise exc.NOT_FOUND(detail="User not found.") 
@@ -118,12 +125,14 @@ async def authenticate_user(*, username: str | int, plain_pwd: str) -> dict:
     """
         Authenticate user credentials.
     """
+
     user = await get_user_by_username(username=username)
     if not user or not Hash.verify(plain_pwd, user["password"]):
         raise exc.UNAUTHORIZED(
             detail="Couldn't validate credentials",
             headers={"WWW-Authenticate": "Bearer"}
         )
+    
     # Check user scopes (privileges)
     scopes = user.get("scopes")
     for scope in scopes:
@@ -131,41 +140,43 @@ async def authenticate_user(*, username: str | int, plain_pwd: str) -> dict:
             raise exc.UNAUTHORIZED("Invalid user credentials.")
     return user
 
-async def get_grades(*, student_name: str, group: str, discipline: str) -> dict:
-    group: dict = await GroupDB.find_by({"group": group})
-    if not group:
-        raise exc.NOT_FOUND("The student's group was not found")
+async def get_grades(*, username: str | str, subject: str | None = None, date: str | None = None):
+    """
+    
+    """
+    
+    user = await get_user_by_username(username=username)
+    if not user:
+        raise exc.NOT_FOUND(
+            detail="User not found.")
+    role = user.get("role")
+    if role != "students":
+        raise exc.CONFLICT(
+            detail=f"Unable to retrieve {role} grades.")    
+
+    GradeDB.COLLECTION_NAME = user.get("group")
+
+    doc = await GradeDB.find_by({"edbo_id": user.get("edbo_id")})
+    grades_table: dict = doc["grades"]
     try:
-        url = group["disciplines"][discipline]
+        if subject:
+            grades = grades_table[subject.title()]
+            if date:
+                grades = grades[date]
+        else:
+            grades = {}
+            for subject, value in grades_table.items(): 
+                if not date:
+                    grades.update({subject: value})
+                else:
+                    if date in value:
+                        grades.update({subject: value[date]})               
     except:
-        raise exc.INTERNAL_SERVER_ERROR("An error occured while getting discipline.") 
-
-    gs = GSheets(spreadsheet_url=url)
-
-    date = gs.worksheet.row_values(row=6)[1:]
-    cell = gs.find_by(query=student_name)
-
-    grades = gs.worksheet.row_values(cell.address)[1:]
+        raise exc.INTERNAL_SERVER_ERROR(
+            detail="An error occured while getting student subject grades."
+        )
     if not grades:
         raise exc.NOT_FOUND(
-            detail="The specified subject for student grades was not found.")
-    
-    counter, avg = 0, 0
-    grades_list = {}
-    try:
-        for j, grade in enumerate(grades):
-            if not grade:
-                continue
-            elif not grade in [" ", "", "Н"]:
-                grade = int(grade)
-                counter += 1 
-                avg += grade
-            grades_list.update({date[j]: grade})
-        return {
-            "grades": grades_list,
-            "average": round((avg / counter), 2)
-        }
-    except Exception as err:
-        print(err) 
-        raise exc.INTERNAL_SERVER_ERROR(
-            detail="Something went wrong. Try again later.")
+            detail="No student grades exist in the system."
+        )
+    return grades

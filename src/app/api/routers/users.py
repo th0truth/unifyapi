@@ -14,29 +14,30 @@ from core.schemas.user import (
     ROLE
 )
 import api.deps as deps
+from core import exc
 import crud
 
 router = APIRouter(tags=["Users"])
 
 UserDB.DATABASE_NAME = "users"
 
-@router.get("/read/{role}/all", response_model=List[UserPrivate],
+@router.get("/read/{role}/all", response_model=List[User],
            dependencies=[Security(deps.get_current_user, scopes=["admin"])])
-async def read_users(role: str, filter: str | None = None, value: Any = None, skip: int = 0, length: int | None = None):
+async def read_users(role: ROLE, filter: str | None = None, value: Any = None, skip: int = 0, length: int | None = None):
     """
         Return all users.
     """
 
     return await crud.read_users(
         role=role, filter=filter, value=value, skip=skip, length=length)
-
+    
 @router.get("/read/{edbo_id}", response_model=User, 
             dependencies=[Security(deps.get_current_user, scopes=["teacher", "admin"])])
 async def read_user_by_edbo_id(edbo_id: int = Path()):
     """
         Return user data by 'edbo_id'.
     """
-
+    
     return await crud.read_user(edbo_id=edbo_id)
 
 @router.patch("/update/{edbo_id}",

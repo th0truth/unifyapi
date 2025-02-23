@@ -1,16 +1,17 @@
-from core.config import settings
-from core.logger import logger
-from motor.motor_asyncio import (
-    AsyncIOMotorClient,
-    AsyncIOMotorDatabase,
-    AsyncIOMotorCollection
-)
-from core import exc
 from typing import (
     Any, 
     List,
     Dict,
 )
+from motor.motor_asyncio import (
+    AsyncIOMotorClient,
+    AsyncIOMotorDatabase,
+    AsyncIOMotorCollection
+)
+
+from core.config import settings
+from core.logger import logger
+from core import exc
 
 # motor docs: https://motor.readthedocs.io/en/stable/tutorial-asyncio.html
 
@@ -82,19 +83,13 @@ class MongoDB:
     @classmethod
     async def get_database(cls) -> AsyncIOMotorDatabase:
         """Get a MongoDB database."""
-        try:
-            return cls.client.get_database(name=cls.DATABASE_NAME)
-        except Exception as err:
-            raise exc.INTERNAL_SERVER_ERROR(detail=err)
+        return cls.client.get_database(name=cls.DATABASE_NAME)
 
     @classmethod
     async def get_collection(cls) -> AsyncIOMotorCollection:
         """Get a MongoDB database collection."""
         database = await cls.get_database()
-        try:
-            return database.get_collection(name=cls.COLLECTION_NAME)
-        except Exception as err:
-            raise exc.INTERNAL_SERVER_ERROR(detail=err)
+        return database.get_collection(name=cls.COLLECTION_NAME)
 
     @classmethod
     def __enter__(cls) -> None:    
