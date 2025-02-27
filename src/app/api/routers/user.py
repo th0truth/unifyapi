@@ -32,24 +32,6 @@ async def get_current_user(user: dict = Depends(deps.get_current_user)):
    
     return user
 
-@router.get("/disciplines", response_model=list[str])
-async def get_user_disciplines(user: dict = Depends(deps.get_current_user)):
-    """
-        Read the user's disciplines.
-    """
-
-    role: ROLE = user.get("role")
-    match role:
-        case "students":
-            GroupDB.COLLECTION_NAME = user.get("degree")
-            group = await GroupDB.find_by({"group": user.get("group")})
-            disciplines = group.get("disciplines")
-        case "teachers":
-            disciplines = user.get("disciplines")
-        case _:
-            raise exc.NOT_FOUND(
-                detail="Something went wrong...")
-    return disciplines
 
 @router.patch("/add-email")
 async def add_user_email(
@@ -91,6 +73,25 @@ async def password_recovery(body: PasswordRecovery = Body()):
         raise exc.NOT_FOUND(detail="User not found.")
     await crud.update_user(edbo_id=user.get("edbo_id"), data={"password": Hash.hash(body.new_password)})
 
+@router.get("/disciplines", response_model=list[str])
+async def get_user_disciplines(user: dict = Depends(deps.get_current_user)):
+    """
+        Read the user's disciplines.
+    """
+
+    role: ROLE = user.get("role")
+    match role:
+        case "students":
+            GroupDB.COLLECTION_NAME = user.get("degree")
+            group = await GroupDB.find_by({"group": user.get("group")})
+            disciplines = group.get("disciplines")
+        case "teachers":
+            disciplines = user.get("disciplines")
+        case _:
+            raise exc.NOT_FOUND(
+                detail="Something went wrong...")
+    return disciplines
+
 @router.get("/grades/my/all")
 async def get_user_all_grades(
     user: dict = Security(deps.get_current_user, scopes=["student"]), date: str | None = None):
@@ -99,7 +100,7 @@ async def get_user_all_grades(
     """
 
     return await crud.get_grades(
-        username=user.get("edbo_id"),
+        edbo_id=user.get("edbo_id"),
         date=date
     )
 
@@ -112,7 +113,7 @@ async def get_user_grades(
     """
 
     return await crud.get_grades(
-        username=user.get("edbo_id"),
+        edbo_id=user.get("edbo_id"),
         subject=body.subject,
         date=date
     )

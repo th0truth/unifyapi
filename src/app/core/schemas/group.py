@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from core.db.database import MongoDB
 
+from .user import DEGREE
 from .teacher import Teacher
 
 class Group(BaseModel):

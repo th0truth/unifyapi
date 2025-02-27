@@ -20,7 +20,7 @@ from core import exc
 
 async def get_user_by_username(*, username: str | str) -> dict | None:
     """
-        Find user by username. e.g 'edbo_id' or 'email' 
+        Find user by username. e.g `edbo_id` or `email` 
     """
     
     collections = await UserDB.get_collections()
@@ -55,14 +55,6 @@ async def create_user(*, user: UserCreate) -> bool:
     user.password = Hash.hash(user.password)
     await UserDB.create(user.model_dump())
     raise exc.CREATED(detail="User created successfully.")
-
-async def count_users(*, collection: ROLE, filter: dict):
-    """
-        Read count of users.
-    """
-
-    UserDB.COLLECTION_NAME = collection
-    return await UserDB.count_documents(filter)
 
 async def read_users(*, role: ROLE, filter: str | None = None, value: Any, skip: int = 0, length: int | None = None) -> List[Dict[str, Any]]:
     """
@@ -140,43 +132,41 @@ async def authenticate_user(*, username: str | int, plain_pwd: str) -> dict:
             raise exc.UNAUTHORIZED("Invalid user credentials.")
     return user
 
-async def get_grades(*, username: str | str, subject: str | None = None, date: str | None = None):
+async def get_grades(*, edbo_id: int, **kwargs):
     """
-    
+        Get student subject grades.
     """
-    
-    user = await get_user_by_username(username=username)
-    if not user:
+
+    UserDB.COLLECTION_NAME = "students"
+    student = await UserDB.find_by({"edbo_id": edbo_id})
+    if not student:
         raise exc.NOT_FOUND(
-            detail="User not found.")
-    role = user.get("role")
-    if role != "students":
-        raise exc.CONFLICT(
-            detail=f"Unable to retrieve {role} grades.")    
-
-    GradeDB.COLLECTION_NAME = user.get("group")
-
-    doc = await GradeDB.find_by({"edbo_id": user.get("edbo_id")})
-    grades_table: dict = doc["grades"]
+            detail="Student not found."
+        )
+    
+    GradeDB.COLLECTION_NAME = student.get("group")
+    document = await GradeDB.find_by({"edbo_id": edbo_id})
+    if not document:
+        raise exc.NOT_FOUND(
+            detail="Grades not found."
+        )
+    subject, date = kwargs.get("subject"), kwargs.get("date")
     try:
         if subject:
-            grades = grades_table[subject.title()]
+            grades = document["grades"][subject]
             if date:
-                grades = grades[date]
+                grades = grades[date]            
         else:
             grades = {}
-            for subject, value in grades_table.items(): 
+            for subject, value in document["grades"].items():
                 if not date:
                     grades.update({subject: value})
                 else:
-                    if date in value:
-                        grades.update({subject: value[date]})               
+                    for date in value:
+                        grades.update({subject: value[date]})
     except:
         raise exc.INTERNAL_SERVER_ERROR(
             detail="An error occured while getting student subject grades."
         )
-    if not grades:
-        raise exc.NOT_FOUND(
-            detail="No student grades exist in the system."
-        )
+    
     return grades

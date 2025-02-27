@@ -1,7 +1,5 @@
 from typing import (
-    List,
-    Dict,
-    Any
+    List
 )
 from fastapi import (
     APIRouter,
@@ -9,6 +7,8 @@ from fastapi import (
     Query,
     Body
 )
+
+from datetime import datetime
 
 from core.schemas.user import UserDB
 from core.schemas.group import GroupDB
@@ -19,6 +19,8 @@ from core.schemas.student import (
 
 from core.schemas.grade import (
     Grade,
+    SetGrade,
+    GradeDB
 )
 
 import api.deps as deps
@@ -69,11 +71,10 @@ async def get_student_grades(edbo_id: int, date: str | None = Query(None), body:
     """
 
     return await crud.get_grades(
-        username=edbo_id,
+        edbo_id=edbo_id,
         subject=body.subject,
         date=date
     )
-
 
 @router.get("/grades/{edbo_id}/all",
             dependencies=[Security(deps.get_current_user, scopes=["teacher", "admin"])])
@@ -83,6 +84,37 @@ async def get_student_all_grades(edbo_id: int, date: str | None = Query(None)):
     """
 
     return await crud.get_grades(
-        username=edbo_id,
+        edbo_id=edbo_id,
         date=date
+    )
+
+@router.patch("/set-grade/{edbo_id}")
+async def set_grade(edbo_id: int, date: str | None = None, body: SetGrade = Body(),
+    user: dict = Security(deps.get_current_user, scopes=["teacher"])):
+    """
+        Set given student grade.
+    """
+    if body.subject not in user.get("disciplines"):
+        raise exc.FORBIDDEN(
+            detail="You don't have access to this discipline."
+        )
+    
+    UserDB.COLLECTION_NAME = "students"
+    student = await UserDB.find_by({"edbo_id": edbo_id})
+    if not student:
+        raise exc.NOT_FOUND(
+            detail="Student not found."
+        )
+    
+    if not date:
+        date = datetime.now().strftime("%d-%m-%Y") 
+    
+    GradeDB.COLLECTION_NAME = student.get("group")
+    await GradeDB.update_one(
+        filter={"edbo_id": edbo_id},
+        update={
+            f"grades.{body.subject}.{date}": body.grade}
+    )
+    raise exc.OK(
+        detail="Student grade successfully added."
     )

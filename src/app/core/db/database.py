@@ -58,18 +58,18 @@ class MongoDB:
         collection = await cls.get_collection()
         collection.delete_one(filter)
   
-    @classmethod
-    async def count_documents(cls, filter: dict = {}) -> dict | int:
-        """Count of documents in the MongoDB collection."""
-        result = {}
-        collection = await cls.get_collection()
-        for key, value in filter.items():
-            if isinstance(value, list):
-                for j in value:
-                    result.update({j: await collection.count_documents({key: j})})
-            else:
-                result = await collection.count_documents({key: value})
-        return result
+    # @classmethod
+    # async def count_documents(cls, filter: dict = {}) -> dict | int:
+    #     """Count of documents in the MongoDB collection."""
+    #     result = {}
+    #     collection = await cls.get_collection()
+    #     for key, value in filter.items():
+    #         if isinstance(value, list):
+    #             for j in value:
+    #                 result.update({j: await collection.count_documents({key: j})})
+    #         else:
+    #             result = await collection.count_documents({key: value})
+    #     return result
 
     @classmethod
     async def get_databases(cls):

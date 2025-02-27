@@ -10,8 +10,7 @@ from fastapi import (
 
 from core.schemas.user import (
     UserDB,
-    ROLE,
-    DEGREE
+    ROLE
 )
 from core.schemas.teacher import (
     Teacher
@@ -47,12 +46,16 @@ async def read_my_group(user: dict = Security(deps.get_current_user, scopes=["st
                 "disciplines": [discipline for discipline in group.get("disciplines")],
                 "class_teacher": Teacher(**await UserDB.find_by({"edbo_id": teacher_edbo}))})
         case "teachers":
-            group = await GroupDB.find_by({"class_teacher_edbo": user.get("edbo_id")})
-            if not group:
-                raise exc.NOT_FOUND(
-                    detail="Your don't have your own group.")
+            collections = await GroupDB.get_collections()
+            for collection in collections:
+                GroupDB.COLLECTION_NAME = collection
+                group = await GroupDB.find_by({"class_teacher_edbo": user.get("edbo_id")})
+     
         case _:
             raise exc.INTERNAL_SERVER_ERROR()
+    if not group:
+        raise exc.NOT_FOUND(
+            detail="Your don't have your own group.")
     return group
 
 @router.get("/read/all", response_model=Dict[str, List[Group]],
@@ -90,8 +93,8 @@ async def read_group(group: str):
         raise exc.NOT_FOUND(detail="Given group not found.")
     return _group
 
-@router.post("/create/{degree}", dependencies=[Security(deps.get_current_user, scopes=["admin"])])
-async def create_group(degree: DEGREE, body: Group = Body()):
+@router.post("/create", dependencies=[Security(deps.get_current_user, scopes=["admin"])])
+async def create_group(body: Group = Body()):
     """
         Create the student group.
     """
@@ -103,7 +106,7 @@ async def create_group(degree: DEGREE, body: Group = Body()):
             raise exc.CONFLICT(
                 detail="Group already exits.")
     
-    GroupDB.COLLECTION_NAME = degree
+    GroupDB.COLLECTION_NAME = body.degree
     await GroupDB.create(doc=body.model_dump(exclude={"additionalProp1"}))
     raise exc.CREATED(
         detail="Group created successfully.")

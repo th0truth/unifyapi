@@ -41,10 +41,10 @@ async def read_my_schedule(user: dict = Security(deps.get_current_user, scopes=[
             group: str = user.get("group")
             ScheduleDB.COLLECTION_NAME = group
             schedule = await ScheduleDB.find_many(filter="group", value=group)
-            grades = await crud.get_grades(username=user.get("edbo_id"))
+            grades = await crud.get_grades(edbo_id=user.get("edbo_id"))
             for lesson in schedule:
                     name, date = lesson["name"], lesson["date"]
-                    lesson.update({"teacher": await get_teacher_info(lesson=lesson)})        
+                    lesson.update({"teacher": await get_teacher_info(lesson=lesson)})    
                     try:
                         lesson.update({"grade": grades[name][date]})
                     except KeyError:
@@ -125,27 +125,44 @@ async def create_schedule(body: ScheduleCreate = Body(),
                 )
 
     await ScheduleDB.create(
-        {"date": date if date else datetime.now().strftime("%d.%m.%Y"),
+        {"date": date if date else datetime.now().strftime("%d-%m-%Y"),
         "teacher_edbo": teacher_edbo,
         "lesson_id": str(uuid.uuid4()),
             **body.model_dump()})
     raise exc.CREATED(
         detail="The lesson has been created successfully."
     )
-            
 
+@router.patch("/update/{group}", deprecated=True)
+async def update_schedule(group: str, date: str | None = None, update: dict = Body(),
+    user: dict = Security(deps.get_current_user, scopes=["teacher", "admin"])):
+    """
+    
+    """
+    groups = await ScheduleDB.get_collections()
+    if group not in groups:
+        raise exc.NOT_FOUND(
+            detail="The given group not found.")    
+    
+    ScheduleDB.COLLECTION_NAME = group
+    role: ROLE = user.get("role")
+    match role:
+        case "teachers":
+            # schedule = await ScheduleDB.find_by({"": date})
+            # if not schedule:
+                # raise exc.NOT_FOUND(
+                    # ""
+                # )
+            await ScheduleDB.update_one(
 
-# @router.patch("/update/{group}",
-            #   dependencies=[Security(deps.get_current_user, scopes=["teacher", "admin"])])
-# async def update_schedule(group: str, date: str | None = None, update: dict = Body()):
-    # groups = await ScheduleDB.get_collections()
-    # if group not in groups:
-        # raise exc.NOT_FOUND(
-            # detail="The given group not found.")    
+                filter={""},
+                update=update
+            )
+            raise exc.OK(
+                detail="The user schedule has been updated.")
+
     # ScheduleDB.COLLECTION_NAME = group
-    # await ScheduleDB.update_one({"time": date}, update=update)
-    # raise exc.OK(
-        # detail="The user schedule has been updated.")
+    # await ScheduleDB.update_one(filter={"date": date}, update=update)
 # 
 # @router.patch("/update/{group}/all",
             #   dependencies=[Security(deps.get_current_user, scopes=["teacher", "admin"])])
