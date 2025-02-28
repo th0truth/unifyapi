@@ -9,8 +9,10 @@ from core.security.utils import Hash
 from core.schemas.user import (
     UserPrivate,
     UserUpdate,
+    UserDB,
     ROLE
 )
+from core.schemas.teacher import Teacher
 from core.schemas.group import GroupDB
 from core.schemas.etc import (
     UpdatePassword,
@@ -73,7 +75,7 @@ async def password_recovery(body: PasswordRecovery = Body()):
         raise exc.NOT_FOUND(detail="User not found.")
     await crud.update_user(edbo_id=user.get("edbo_id"), data={"password": Hash.hash(body.new_password)})
 
-@router.get("/disciplines", response_model=list[str])
+@router.get("/disciplines")
 async def get_user_disciplines(user: dict = Depends(deps.get_current_user)):
     """
         Read the user's disciplines.
@@ -82,9 +84,17 @@ async def get_user_disciplines(user: dict = Depends(deps.get_current_user)):
     role: ROLE = user.get("role")
     match role:
         case "students":
+            disciplines = {}
             GroupDB.COLLECTION_NAME = user.get("degree")
-            group = await GroupDB.find_by({"group": user.get("group")})
-            disciplines = group.get("disciplines")
+            group= await GroupDB.find_by({"group": user.get("group")})
+            if not group:
+                raise exc.NOT_FOUND(
+                    detail="Your group not found in the system."
+                )
+            for discipline, values in group.get("disciplines").items():
+                UserDB.COLLECTION_NAME = "teachers"
+                disciplines.update(
+                    {discipline: [Teacher(**await UserDB.find_by({"edbo_id": edbo_id})) for edbo_id in values]})
         case "teachers":
             disciplines = user.get("disciplines")
         case _:
