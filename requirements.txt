@@ -16,4 +16,5 @@ requests==2.32.3
 starlette==0.41.3
 unicorn==2.1.1
 uvicorn==0.34.0
+itsdangerous==2.2.0 
 httpx==0.28.1
