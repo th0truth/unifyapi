@@ -111,6 +111,7 @@ async def get_user_all_grades(
 
     return await crud.get_grades(
         edbo_id=user.get("edbo_id"),
+        group=user.get("group"),
         date=date
     )
 
@@ -124,6 +125,7 @@ async def get_user_grades(
 
     return await crud.get_grades(
         edbo_id=user.get("edbo_id"),
+        group=user.get("group"),
         subject=body.subject,
         date=date
     )

@@ -9,7 +9,7 @@ class Group(BaseModel):
     course: int
     group: str
     specialty: str
-    disciplines: list
+    # disciplines: dict | None = None
     class_teacher: Teacher | None = None
 
 class GroupDelete(BaseModel):

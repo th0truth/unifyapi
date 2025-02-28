@@ -132,41 +132,22 @@ async def authenticate_user(*, username: str | int, plain_pwd: str) -> dict:
             raise exc.UNAUTHORIZED("Invalid user credentials.")
     return user
 
-async def get_grades(*, edbo_id: int, **kwargs):
+async def get_grades(*, edbo_id: int, group: str, **kwargs) -> dict | None:
     """
         Get student subject grades.
     """
 
-    UserDB.COLLECTION_NAME = "students"
-    student = await UserDB.find_by({"edbo_id": edbo_id})
-    if not student:
-        raise exc.NOT_FOUND(
-            detail="Student not found."
-        )
-    
-    GradeDB.COLLECTION_NAME = student.get("group")
-    document = await GradeDB.find_by({"edbo_id": edbo_id})
-    if not document:
-        raise exc.NOT_FOUND(
-            detail="Grades not found."
-        )
-    subject, date = kwargs.get("subject"), kwargs.get("date")
-    try:
+    GradeDB.COLLECTION_NAME = group
+    grades: dict = await GradeDB.find_by({"edbo_id": edbo_id})
+    if grades:
+        disciplines: dict = grades.get("disciplines")  
+        subject, date = kwargs.get("subject"), kwargs.get("date")
         if subject:
-            grades = document["grades"][subject]
+            grades: dict = disciplines.get(subject, {})
             if date:
-                grades = grades[date]            
+                grades = grades.get(date, None)
         else:
             grades = {}
-            for subject, value in document["grades"].items():
-                if not date:
-                    grades.update({subject: value})
-                else:
-                    for date in value:
-                        grades.update({subject: value[date]})
-    except:
-        raise exc.INTERNAL_SERVER_ERROR(
-            detail="An error occured while getting student subject grades."
-        )
-    
-    return grades
+            for subject, value in disciplines.items():
+                grades.update({subject: value[date] if date else value})
+    return grades if grades else None

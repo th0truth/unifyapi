@@ -1,7 +1,6 @@
 from fastapi import (
     APIRouter,
     Security,
-    Depends,
     Query,
     Body
 )
@@ -9,13 +8,18 @@ from fastapi import (
 from datetime import datetime
 import uuid
 
-from core.schemas.user import UserDB, ROLE
+from core.schemas.user import (
+    UserDB,
+    ROLE
+)
 from core.schemas.schedule import (
     Schedule,
     ScheduleCreate,
     ScheduleTeacher,
     ScheduleDB
 )
+from core.schemas.student import Student
+from core.schemas.teacher import Teacher
 
 from core import exc
 import api.deps as deps
@@ -38,21 +42,18 @@ async def read_my_schedule(user: dict = Security(deps.get_current_user, scopes=[
     role: ROLE = user.get("role")
     match role:
         case "students":
-            group: str = user.get("group")
-            ScheduleDB.COLLECTION_NAME = group
-            schedule = await ScheduleDB.find_many(filter="group", value=group)
-            grades = await crud.get_grades(edbo_id=user.get("edbo_id"))
+            student = Student(**user)
+            ScheduleDB.COLLECTION_NAME = student.group
+            schedule = await ScheduleDB.find_many(filter="group", value=student.group)
+            grades = await crud.get_grades(edbo_id=student.edbo_id, group=student.group)
             for lesson in schedule:
-                    name, date = lesson["name"], lesson["date"]
-                    lesson.update({"teacher": await get_teacher_info(lesson=lesson)})    
-                    try:
-                        lesson.update({"grade": grades[name][date]})
-                    except KeyError:
-                        continue
+                lesson.update(
+                    {"teacher": await get_teacher_info(lesson=lesson),
+                    "grade": grades.get(lesson["name"], {}).get(lesson["date"], None)})
         case "teachers":
             collections = await ScheduleDB.get_collections()
             for collection in collections:
-                ScheduleDB.COLLECTION_NAME = collection                
+                ScheduleDB.COLLECTION_NAME = collection          
                 schedule = await ScheduleDB.find_many(
                     filter="teacher_edbo", value=user.get("edbo_id"))
                 for lesson in schedule:

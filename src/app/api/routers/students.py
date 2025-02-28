@@ -70,8 +70,15 @@ async def get_student_grades(edbo_id: int, date: str | None = Query(None), body:
         Return the specified student's subject grades.
     """
 
+    student = await UserDB.find_by({"edbo_id": edbo_id})
+    if not student:
+        raise exc.NOT_FOUND(
+            detail="Student not found."
+        )
+    
     return await crud.get_grades(
         edbo_id=edbo_id,
+        group=student.get("group"),
         subject=body.subject,
         date=date
     )
@@ -83,8 +90,15 @@ async def get_student_all_grades(edbo_id: int, date: str | None = Query(None)):
         Return all subject grades. 
     """
 
+    student = await UserDB.find_by({"edbo_id": edbo_id})
+    if not student:
+        raise exc.NOT_FOUND(
+            detail="Student not found."
+        )
+
     return await crud.get_grades(
         edbo_id=edbo_id,
+        group=student.get("group"),
         date=date
     )
 

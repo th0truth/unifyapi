@@ -12,9 +12,7 @@ from core.schemas.user import (
     UserDB,
     ROLE
 )
-from core.schemas.teacher import (
-    Teacher
-)
+from core.schemas.teacher import Teacher
 from core.schemas.group import (
     Group,
     GroupDB
@@ -43,19 +41,18 @@ async def read_my_group(user: dict = Security(deps.get_current_user, scopes=["st
             teacher_edbo = group.pop("class_teacher_edbo")
             UserDB.COLLECTION_NAME = "teachers"
             group.update({
-                "disciplines": [discipline for discipline in group.get("disciplines")],
                 "class_teacher": Teacher(**await UserDB.find_by({"edbo_id": teacher_edbo}))})
         case "teachers":
             collections = await GroupDB.get_collections()
             for collection in collections:
                 GroupDB.COLLECTION_NAME = collection
                 group = await GroupDB.find_by({"class_teacher_edbo": user.get("edbo_id")})
-     
+                if group: break 
+            if not group:
+                raise exc.NOT_FOUND(
+                    detail="You don't have your own group.")
         case _:
             raise exc.INTERNAL_SERVER_ERROR()
-    if not group:
-        raise exc.NOT_FOUND(
-            detail="Your don't have your own group.")
     return group
 
 @router.get("/read/all", response_model=Dict[str, List[Group]],
