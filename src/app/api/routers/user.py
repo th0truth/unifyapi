@@ -91,10 +91,10 @@ async def get_user_disciplines(user: dict = Depends(deps.get_current_user)):
                 raise exc.NOT_FOUND(
                     detail="Your group not found in the system."
                 )
-            for discipline, values in group.get("disciplines").items():
+            for discipline, edbo_id in group.get("disciplines").items():
                 UserDB.COLLECTION_NAME = "teachers"
                 disciplines.update(
-                    {discipline: [Teacher(**await UserDB.find_by({"edbo_id": edbo_id})) for edbo_id in values]})
+                    {discipline: Teacher(**await UserDB.find_by({"edbo_id": edbo_id}))})
         case "teachers":
             disciplines = user.get("disciplines")
         case _:
