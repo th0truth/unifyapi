@@ -73,7 +73,7 @@ async def password_recovery(body: PasswordRecovery = Body()):
     user = await crud.get_user_by_username(username=body.email)
     if not user:
         raise exc.NOT_FOUND(detail="User not found.")
-    await crud.update_user(edbo_id=user.get("edbo_id"), data={"password": Hash.hash(body.new_password)})
+    await crud.update_user(edbo_id=user.get("edbo_id"), data={"password": Hash.hash(plain=body.new_password)})
 
 @router.get("/disciplines")
 async def get_user_disciplines(user: dict = Depends(deps.get_current_user)):

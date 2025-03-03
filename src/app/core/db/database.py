@@ -6,7 +6,8 @@ from typing import (
 from motor.motor_asyncio import (
     AsyncIOMotorClient,
     AsyncIOMotorDatabase,
-    AsyncIOMotorCollection
+    AsyncIOMotorCollection,
+    AsyncIOMotorGridFSBucket
 )
 
 from core.config import settings
@@ -57,20 +58,12 @@ class MongoDB:
         """Delete a document by 'filter' in the MongoDB collection."""
         collection = await cls.get_collection()
         collection.delete_one(filter)
-  
+#   
     # @classmethod
-    # async def count_documents(cls, filter: dict = {}) -> dict | int:
-    #     """Count of documents in the MongoDB collection."""
-    #     result = {}
-    #     collection = await cls.get_collection()
-    #     for key, value in filter.items():
-    #         if isinstance(value, list):
-    #             for j in value:
-    #                 result.update({j: await collection.count_documents({key: j})})
-    #         else:
-    #             result = await collection.count_documents({key: value})
-    #     return result
-
+    # async def upload_file(cls, filename: str, data: bytes):
+        # fs = await cls.get_gridfs()
+        # return fs.upload_from_stream(filename=filename, data=data)
+# 
     @classmethod
     async def get_databases(cls):
         return await cls.client.list_database_names()
@@ -90,6 +83,11 @@ class MongoDB:
         """Get a MongoDB database collection."""
         database = await cls.get_database()
         return database.get_collection(name=cls.COLLECTION_NAME)
+
+    # @classmethod
+    # async def get_gridfs(cls) -> AsyncIOMotorGridFSBucket:
+    #     """"""
+    #     return AsyncIOMotorGridFSBucket(database=cls.COLLECTION_NAME)
 
     @classmethod
     def __enter__(cls) -> None:    

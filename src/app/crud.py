@@ -22,7 +22,6 @@ async def get_user_by_username(*, username: str | str) -> dict | None:
     """
         Find user by username. e.g `edbo_id` or `email` 
     """
-    
     collections = await UserDB.get_collections()
     for collection in collections:
         UserDB.COLLECTION_NAME = collection
@@ -52,8 +51,8 @@ async def create_user(*, user: UserCreate) -> bool:
     if await UserDB.find_by({"edbo_id": user.edbo_id}):
         raise exc.UNPROCESSABLE_CONTENT(detail="User already exits.")
     UserDB.COLLECTION_NAME = user.role
-    user.password = Hash.hash(user.password)
-    await UserDB.create(user.model_dump())
+    user.password = Hash.hash(plain=user.password)
+    await UserDB.create(doc=user.model_dump())
     raise exc.CREATED(detail="User created successfully.")
 
 async def read_users(*, role: ROLE, filter: str | None = None, value: Any, skip: int = 0, length: int | None = None) -> List[Dict[str, Any]]:
@@ -79,7 +78,6 @@ async def update_all_users(*, collection: ROLE, filter: dict, update: dict):
     """
         Update users data.
     """
-
     UserDB.COLLECTION_NAME = collection
     await UserDB.update_many(
         filter=filter,
@@ -91,7 +89,6 @@ async def update_user(*, edbo_id: int, data: dict):
     """
         Update user data.
     """
-
     user = await get_user_by_username(username=edbo_id)
     if not user:
        raise exc.NOT_FOUND(detail="User not found.") 
@@ -105,7 +102,6 @@ async def delete_user(*, user: dict):
     """
         Delete user from the MongoDB collection by 'edbo_id'.
     """
-    
     if not user:
         raise exc.NOT_FOUND(
             detail="User not found.")
@@ -117,7 +113,6 @@ async def authenticate_user(*, username: str | int, plain_pwd: str) -> dict:
     """
         Authenticate user credentials.
     """
-
     user = await get_user_by_username(username=username)
     if not user or not Hash.verify(plain_pwd, user["password"]):
         raise exc.UNAUTHORIZED(
@@ -132,12 +127,10 @@ async def authenticate_user(*, username: str | int, plain_pwd: str) -> dict:
             raise exc.UNAUTHORIZED("Invalid user credentials.")
     return user
 
-async def get_grades(*, edbo_id: int, group: str, **kwargs) -> dict | None:
+async def get_grades(*, edbo_id: int, group: str, **kwargs) -> dict:
     """
         Get student subject grades.
     """
-
-    GradeDB.COLLECTION_NAME = group
     grades: dict = await GradeDB.find_by({"edbo_id": edbo_id})
     if grades:
         disciplines: dict = grades.get("disciplines")  
@@ -150,4 +143,4 @@ async def get_grades(*, edbo_id: int, group: str, **kwargs) -> dict | None:
             grades = {}
             for subject, value in disciplines.items():
                 grades.update({subject: value[date] if date else value})
-    return grades if grades else None
+    return grades

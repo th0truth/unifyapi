@@ -46,6 +46,7 @@ async def read_my_schedule(user: dict = Security(deps.get_current_user, scopes=[
             ScheduleDB.COLLECTION_NAME = student.group
             schedule = await ScheduleDB.find_many(filter="group", value=student.group)
             grades = await crud.get_grades(edbo_id=student.edbo_id, group=student.group)
+            # fix this later
             for lesson in schedule:
                 lesson.update(
                     {"teacher": await get_teacher_info(lesson=lesson),
@@ -134,33 +135,33 @@ async def create_schedule(body: ScheduleCreate = Body(),
         detail="The lesson has been created successfully."
     )
 
-@router.patch("/update/{group}", deprecated=True)
-async def update_schedule(group: str, date: str | None = None, update: dict = Body(),
-    user: dict = Security(deps.get_current_user, scopes=["teacher", "admin"])):
-    """
+# @router.patch("/update/{group}", deprecated=True)
+# async def update_schedule(group: str, date: str | None = None, update: dict = Body(),
+#     user: dict = Security(deps.get_current_user, scopes=["teacher", "admin"])):
+#     """
     
-    """
-    groups = await ScheduleDB.get_collections()
-    if group not in groups:
-        raise exc.NOT_FOUND(
-            detail="The given group not found.")    
+#     """
+#     groups = await ScheduleDB.get_collections()
+#     if group not in groups:
+#         raise exc.NOT_FOUND(
+#             detail="The given group not found.")    
     
-    ScheduleDB.COLLECTION_NAME = group
-    role: ROLE = user.get("role")
-    match role:
-        case "teachers":
-            # schedule = await ScheduleDB.find_by({"": date})
-            # if not schedule:
-                # raise exc.NOT_FOUND(
-                    # ""
-                # )
-            await ScheduleDB.update_one(
+#     ScheduleDB.COLLECTION_NAME = group
+#     role: ROLE = user.get("role")
+#     match role:
+#         case "teachers":
+#             # schedule = await ScheduleDB.find_by({"": date})
+#             # if not schedule:
+#                 # raise exc.NOT_FOUND(
+#                     # ""
+#                 # )
+#             await ScheduleDB.update_one(
 
-                filter={""},
-                update=update
-            )
-            raise exc.OK(
-                detail="The user schedule has been updated.")
+#                 filter={""},
+#                 update=update
+#             )
+#             raise exc.OK(
+#                 detail="The user schedule has been updated.")
 
     # ScheduleDB.COLLECTION_NAME = group
     # await ScheduleDB.update_one(filter={"date": date}, update=update)

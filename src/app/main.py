@@ -1,5 +1,4 @@
-from fastapi.middleware.cors import CORSMiddleware
-from starlette.middleware.sessions import SessionMiddleware
+from starlette.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
@@ -29,15 +28,4 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
-app.add_middleware(SessionMiddleware, secret_key=settings.SECRET_KEY)
-
 app.include_router(api_router, prefix=settings.API_V1_STR)
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(
-        app="main:app",
-        host="0.0.0.0",
-        port=10000,
-        reload=True
-    )

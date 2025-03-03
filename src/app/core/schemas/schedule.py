@@ -1,8 +1,6 @@
 from pydantic import BaseModel
 from core.db.database import MongoDB
 
-from typing import Any
-
 class Schedule(BaseModel):
     teacher: dict | None = None
     name: str
