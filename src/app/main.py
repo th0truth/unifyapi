@@ -8,8 +8,8 @@ from api.api import api_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    with MongoDB() as db:
-        yield db
+    async with MongoDB() as client:
+        yield client
 
 app = FastAPI(
     title=settings.NAME,

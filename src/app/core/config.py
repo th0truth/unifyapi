@@ -13,7 +13,7 @@ private_key = rsa.generate_private_key(
 
 class Settings(BaseSettings): 
     model_config = SettingsConfigDict(
-        env_file="../.env",
+        env_file=".env",
         env_ignore_empty=True,
         extra="ignore",
     )
@@ -31,13 +31,19 @@ class Settings(BaseSettings):
     DB_USERNAME: str
     DB_PASSWORD: str
     DB_HOSTNAME: str
-    
-    # OAuth | JWT
+
+    # Redis settings
+
+    REDIS_HOST: str
+    REDIS_PORT: int
+    REDIS_USERNAME: str
+    REDIS_PASSWORD: str
+
+    # JWT settings
 
     JWT_ALGORITHM: str = "RS256"
     JWT_EXPIRE_MIN: int | float
     JWT_REFRESH_MIN: int | float
-
     scopes: Dict[str, Any] = {
         "student": "",
         "teacher": "",

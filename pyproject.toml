@@ -1,0 +1,27 @@
+[project]
+name = "unifyapi"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "the truth"}
+]
+license = {text = "MIT"}
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "uvicorn (>=0.34.0,<0.35.0)",
+    "fastapi[standard] (>=0.115.12,<0.116.0)",
+    "pydantic-settings (>=2.8.1,<3.0.0)",
+    "pydantic (>=2.10.6,<3.0.0)",
+    "python-dotenv (>=1.1.0,<2.0.0)",
+    "motor (>=3.7.0,<4.0.0)",
+    "pyjwt (>=2.10.1,<3.0.0)",
+    "passlib (>=1.7.4,<2.0.0)",
+    "argon2-cffi (>=23.1.0,<24.0.0)",
+    "redis (>=5.2.1,<6.0.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"

@@ -28,15 +28,11 @@ class UserPrivate(User):
 
 class UserCreate(User):
     acc_date: datetime
-    password: str = Field(..., min_length=8, max_length=16)
+    password: str = Field(..., min_length=8, max_length=256)
 
 class UserUpdate(BaseModel):
     email: EmailStr | None = None
     password: str
 
-class UserDelete(BaseModel):
-    username: str
-
 class UserDB(MongoDB):
-    DATABASE_NAME: str = "users"
-    COLLECTION_NAME: str
+    DATABASE_NAME = "users"

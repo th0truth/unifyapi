@@ -16,5 +16,4 @@ class GroupDelete(BaseModel):
     group: str
 
 class GroupDB(MongoDB):
-    DATABASE_NAME: str = "groups"
-    COLLECTION_NAME: str    
+    DATABASE_NAME = "groups"

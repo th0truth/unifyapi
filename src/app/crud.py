@@ -49,7 +49,7 @@ async def create_user(*, user: UserCreate) -> bool:
     """
 
     if await UserDB.find_by({"edbo_id": user.edbo_id}):
-        raise exc.UNPROCESSABLE_CONTENT(detail="User already exits.")
+        raise exc.CONFLICT(detail="User already exits.")
     UserDB.COLLECTION_NAME = user.role
     user.password = Hash.hash(plain=user.password)
     await UserDB.create(doc=user.model_dump())
@@ -131,6 +131,7 @@ async def get_grades(*, edbo_id: int, group: str, **kwargs) -> dict:
     """
         Get student subject grades.
     """
+    GradeDB.COLLECTION_NAME = group
     grades: dict = await GradeDB.find_by({"edbo_id": edbo_id})
     if grades:
         disciplines: dict = grades.get("disciplines")  

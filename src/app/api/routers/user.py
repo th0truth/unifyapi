@@ -4,7 +4,6 @@ from fastapi import (
     Depends,
     Body,
 )
-
 from core.security.utils import Hash
 from core.schemas.user import (
     UserPrivate,
@@ -14,11 +13,11 @@ from core.schemas.user import (
 )
 from core.schemas.teacher import Teacher
 from core.schemas.group import GroupDB
+from core.schemas.grade import Grade
 from core.schemas.etc import (
     UpdatePassword,
     PasswordRecovery
 )
-from core.schemas.grade import Grade
 
 from core import exc
 import api.deps as deps
@@ -29,19 +28,18 @@ router = APIRouter(tags=["User"])
 @router.get("/me", response_model=UserPrivate)
 async def get_current_user(user: dict = Depends(deps.get_current_user)):
     """
-        Read the user's private data.
+    Read the user's private data.
     """
-   
     return user
-
 
 @router.patch("/add-email")
 async def add_user_email(
-    user: dict = Depends(deps.get_current_user), user_update: UserUpdate = Body()):
+        user: dict = Depends(deps.get_current_user),
+        user_update: UserUpdate = Body()
+    ):
     """
-        Add email to the user account.
+    Add email to the user account.
     """
-
     if await crud.get_user_by_username(username=user_update.email):
         raise exc.CONFLICT(
             detail="That email is already associated with another account.")
@@ -52,12 +50,13 @@ async def add_user_email(
     )
 
 @router.patch("/update/password")
-async def update_password_me(user: dict = Depends(deps.get_current_user),
-                             body: UpdatePassword = Body()):
+async def update_password_me(
+        user: dict = Depends(deps.get_current_user),
+        body: UpdatePassword = Body()
+    ):
     """
-        Update own passoword.
+    Update own passoword.
     """
-
     user = await crud.authenticate_user(username=user.get("edbo_id"), plain_pwd=body.current_password)
     if not user:
         raise exc.UNAUTHORIZED(detail="Incorrect password")
@@ -67,26 +66,26 @@ async def update_password_me(user: dict = Depends(deps.get_current_user),
 @router.patch("/password-recovery")
 async def password_recovery(body: PasswordRecovery = Body()):
     """
-        Password recovery.
+    Password recovery.
     """
-
     user = await crud.get_user_by_username(username=body.email)
     if not user:
         raise exc.NOT_FOUND(detail="User not found.")
     await crud.update_user(edbo_id=user.get("edbo_id"), data={"password": Hash.hash(plain=body.new_password)})
 
 @router.get("/disciplines")
-async def get_user_disciplines(user: dict = Depends(deps.get_current_user)):
+async def get_user_disciplines(
+        user: dict = Depends(deps.get_current_user)
+    ):
     """
-        Read the user's disciplines.
+    Read the user's disciplines.
     """
-
     role: ROLE = user.get("role")
     match role:
         case "students":
             disciplines = {}
             GroupDB.COLLECTION_NAME = user.get("degree")
-            group= await GroupDB.find_by({"group": user.get("group")})
+            group = await GroupDB.find_by({"group": user.get("group")})
             if not group:
                 raise exc.NOT_FOUND(
                     detail="Your group not found in the system."
@@ -98,17 +97,17 @@ async def get_user_disciplines(user: dict = Depends(deps.get_current_user)):
         case "teachers":
             disciplines = user.get("disciplines")
         case _:
-            raise exc.NOT_FOUND(
-                detail="Something went wrong...")
+            raise exc.CONFLICT()
     return disciplines
 
 @router.get("/grades/my/all")
 async def get_user_all_grades(
-    user: dict = Security(deps.get_current_user, scopes=["student"]), date: str | None = None):
+        user: dict = Security(deps.get_current_user, scopes=["student"]),
+        date: str | None = None
+    ):
     """
-        Fetch all grades for the current user.
+    Fetch all grades for the current user.
     """
-
     return await crud.get_grades(
         edbo_id=user.get("edbo_id"),
         group=user.get("group"),
@@ -117,12 +116,13 @@ async def get_user_all_grades(
 
 @router.post("/grades/my")
 async def get_user_grades(
-    user: dict = Security(deps.get_current_user, scopes=["student"]),
-    date: str | None = None, body: Grade = Body()):
+        user: dict = Security(deps.get_current_user, scopes=["student"]),
+        date: str | None = None,
+        body: Grade = Body()
+    ):
     """
-        Fetch the current user's grades by `subject`.    
+    Fetch the current user's grades by `subject`.    
     """
-
     return await crud.get_grades(
         edbo_id=user.get("edbo_id"),
         group=user.get("group"),

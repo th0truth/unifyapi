@@ -29,5 +29,4 @@ class ScheduleCreate(BaseModel):
     homework: str
 
 class ScheduleDB(MongoDB):
-    DATABASE_NAME: str = "schedule"
-    COLLECTION_NAME: str
+    DATABASE_NAME = "schedule"

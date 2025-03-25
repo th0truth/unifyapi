@@ -28,3 +28,7 @@ async def auth_token(token: str = Header()):
         Login with an access token.
     """
     return await OAuthJWTBearer.verify(token=token)
+
+@router.post("/logout")
+async def logout(token: Token = Header()):
+    pass

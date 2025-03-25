@@ -10,5 +10,4 @@ class SetGrade(BaseModel):
     grade: int
 
 class GradeDB(MongoDB):
-    DATABASE_NAME: str = "grades"
-    COLLECTION_NAME: str
+    DATABASE_NAME = "grades"
