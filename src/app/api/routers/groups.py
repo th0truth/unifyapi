@@ -3,6 +3,7 @@ from fastapi import (
     Security,
     Body
 )
+from api.deps import get_current_user
 from core.schemas.user import (
     UserDB,
     ROLE
@@ -13,13 +14,12 @@ from core.schemas.group import (
     GroupDB
 )
 from core import exc
-import api.deps as deps
 
 router = APIRouter(tags=["Groups"])
 
 @router.get("/read/my", response_model=Group)
 async def read_my_group(
-        user: dict = Security(deps.get_current_user, scopes=["student", "teacher"])
+        user: dict = Security(get_current_user, scopes=["student", "teacher"])
     ):
     """
         Return the student group.  
@@ -49,7 +49,7 @@ async def read_my_group(
     return group
 
 @router.get("/read/all", response_model=dict[str, list[Group]],
-    dependencies=[Security(deps.get_current_user, scopes=["teacher", "admin"])])
+    dependencies=[Security(get_current_user, scopes=["teacher", "admin"])])
 async def read_groups():
     """
         Return all student groups. 
@@ -63,7 +63,7 @@ async def read_groups():
     return groups
 
 @router.post("/create",
-    dependencies=[Security(deps.get_current_user, scopes=["admin"])])
+    dependencies=[Security(get_current_user, scopes=["admin"])])
 async def create_group(body: Group = Body()):
     """
         Create the student group.
@@ -81,7 +81,7 @@ async def create_group(body: Group = Body()):
         detail="Group created successfully.")
  
 @router.delete("/delete/{group}",
-    dependencies=[Security(deps.get_current_user, scopes=["admin"])])
+    dependencies=[Security(get_current_user, scopes=["admin"])])
 async def delete_group(group: str):
     degrees = await GroupDB.get_collections()
     for degree in degrees:

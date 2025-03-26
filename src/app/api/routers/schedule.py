@@ -9,6 +9,7 @@ from fastapi import (
 )
 import uuid
 
+from api.deps import get_current_user
 from core.schemas.user import (
     UserDB,
     ROLE
@@ -21,7 +22,6 @@ from core.schemas.schedule import (
 )
 
 from core import exc
-import api.deps as deps
 import crud
 
 router = APIRouter(tags=["Schedule"])
@@ -34,7 +34,7 @@ async def get_teacher_info(lesson: dict) -> dict:
     return teacher
 
 @router.get("/my", response_model=list[Schedule])
-async def read_my_schedule(user: dict = Depends(deps.get_current_user)):
+async def read_my_schedule(user: dict = Depends(get_current_user)):
     """
         Return the schedule for the current user. 
     """
@@ -62,7 +62,7 @@ async def read_my_schedule(user: dict = Depends(deps.get_current_user)):
     return schedule
 
 @router.get("/{group}", response_model=list[Schedule],
-            dependencies=[Security(deps.get_current_user, scopes=["teacher", "admin"])])
+            dependencies=[Security(get_current_user, scopes=["teacher", "admin"])])
 async def read_group_schedule(
         group: str,
         skip: int | None = None,
@@ -80,7 +80,7 @@ async def read_group_schedule(
     return schedule
 
 @router.get("/{group}/{id}", response_model=Schedule,
-            dependencies=[Security(deps.get_current_user, scopes=["teacher", "admin"])])
+            dependencies=[Security(get_current_user, scopes=["teacher", "admin"])])
 async def read_schedule_by_id(
         group: str,
         id: str,
@@ -102,7 +102,7 @@ async def create_schedule(
     teacher_edbo: int | None = Query(None),
     date: str | None = Query(None),                
     user: dict = Security(
-        deps.get_current_user, scopes=["teacher", "admin"]),
+        get_current_user, scopes=["teacher", "admin"]),
 ):
     """
         Create a schedule for the group.
@@ -153,7 +153,7 @@ async def create_schedule(
         detail="The lesson has been created successfully."
     )
 
-@router.post("/upload/file", dependencies=[Depends(deps.get_current_user)])
+@router.post("/upload/file", dependencies=[Depends(get_current_user)])
 async def create_upload_file(file: UploadFile):
     """
         Upload file for schedule.
@@ -187,7 +187,7 @@ async def delete_file(filename: str = Body()):
 #         group: str,
 #         date: str = Query(),
 #         body: dict = Body(),
-#         user: dict = Security(deps.get_current_user, scopes=["teacher", "admin"])
+#         user: dict = Security(get_current_user, scopes=["teacher", "admin"])
 #     ):
     
 #     groups = await ScheduleDB.get_collections()
@@ -230,7 +230,7 @@ async def delete_file(filename: str = Body()):
     # await ScheduleDB.update_one(filter={"date": date}, update=update)
 # 
 # @router.patch("/update/{group}/all",
-            #   dependencies=[Security(deps.get_current_user, scopes=["teacher", "admin"])])
+            #   dependencies=[Security(get_current_user, scopes=["teacher", "admin"])])
 # async def update_entire_schedule(group: str, filter: dict, data: dict):
     # """
         # Update users data.

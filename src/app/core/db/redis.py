@@ -7,13 +7,16 @@ class Redis:
     def __init__(
             self,
             db: str | int,
-            protocol: int = 2
-        ) -> aioredis.Redis:
+            protocol: int | None = 2
+        ) -> None:
         self.db = db
         self.protocol = protocol
+        self.client = None
 
     async def __aenter__(self) -> aioredis.Redis:
-        """Create a connection to Redis cluster."""
+        """
+        Create a connection to Redis cluster.
+        """
         try:
             self.client = aioredis.Redis(
                 host=settings.REDIS_HOST,
@@ -32,7 +35,10 @@ class Redis:
         except aioredis.ConnectionError:
             logger.error("An error occured while connecting to Redis.")
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
-        """Disconnect Redis cluster from API."""
-        await self.client.close()
-        logger.info("Redis cluster disconnected")
+    async def __aexit__(self, exc_type, exc, tb) -> None:
+        """
+        Disconnect Redis cluster from API.
+        """
+        if self.client:
+            await self.client.close()
+            logger.info("Redis cluster disconnected")

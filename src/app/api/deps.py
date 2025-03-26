@@ -6,12 +6,15 @@ from fastapi.security import (
 
 from core.config import settings
 from core.security.jwt import OAuthJWTBearer
+from core.db import Redis
+
 from core.schemas.etc import TokenData
 from core.schemas.user import UserDB
+
 from core import exc
 
 oauth2_scheme = OAuth2PasswordBearer(
-    tokenUrl=f"{settings.API_V1_STR}/auth/login/credentials",
+    tokenUrl=f"{settings.API_V1_STR}/auth/login",
     scopes=settings.scopes)
 
 async def get_current_user(

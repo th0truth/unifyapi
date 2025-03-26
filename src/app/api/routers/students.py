@@ -7,6 +7,7 @@ from fastapi import (
     Body
 )
 
+from api.deps import get_current_user
 from core.schemas.user import UserDB
 from core.schemas.group import GroupDB
 from core.schemas.student import (
@@ -19,7 +20,6 @@ from core.schemas.grade import (
     GradeDB
 )
 
-import api.deps as deps
 from core import exc
 import crud
 
@@ -28,7 +28,7 @@ router = APIRouter(tags=["Students"])
 UserDB.COLLECTION_NAME = "students"
 
 @router.post("/create",
-    dependencies=[Security(deps.get_current_user, scopes=["admin"])])
+    dependencies=[Security(get_current_user, scopes=["admin"])])
 async def create_student(student: StudentCreate = Body()):
     """
         Create a student account.
@@ -39,7 +39,7 @@ async def create_student(student: StudentCreate = Body()):
     return await crud.create_user(user=student)
 
 @router.get("/all/{group}", response_model=List[Student],
-    dependencies=[Security(deps.get_current_user, scopes=["teacher", "admin"])])
+    dependencies=[Security(get_current_user, scopes=["teacher", "admin"])])
 async def read_students(
         group: str,
         skip: int = 0,
@@ -51,7 +51,7 @@ async def read_students(
     return await crud.read_users(role="students", filter="group", value=group, skip=skip, length=length)
 
 @router.post("/grades/{edbo_id}",
-    dependencies=[Security(deps.get_current_user, scopes=["teacher", "admin"])])
+    dependencies=[Security(get_current_user, scopes=["teacher", "admin"])])
 async def get_student_grades(
         edbo_id: int,
         date: str | None = Query(None),
@@ -74,7 +74,7 @@ async def get_student_grades(
     )
 
 @router.get("/grades/{edbo_id}/all",
-    dependencies=[Security(deps.get_current_user, scopes=["teacher", "admin"])])
+    dependencies=[Security(get_current_user, scopes=["teacher", "admin"])])
 async def get_student_all_grades(
         edbo_id: int,
         date: str | None = Query(None),
@@ -99,7 +99,7 @@ async def set_grade(
         edbo_id: int,
         date: str | None = None,
         body: SetGrade = Body(),
-        user: dict = Security(deps.get_current_user, scopes=["teacher"]),
+        user: dict = Security(get_current_user, scopes=["teacher"]),
     ):
     """
         Set given student grade.

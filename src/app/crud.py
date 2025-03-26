@@ -12,42 +12,33 @@ from core.schemas.user import (
     UserDB,
     ROLE
 )
-from core.schemas.grade import (
-    GradeDB
-)
-
+from core.schemas.grade import GradeDB
 from core import exc
 
-async def get_user_by_username(*, username: str | str) -> dict | None:
+async def get_user_by_username(*, username: int | str) -> dict | None:
     """
-        Find user by username. e.g `edbo_id` or `email` 
+    Find user by username. e.g `edbo_id` or `email` 
     """
     collections = await UserDB.get_collections()
     for collection in collections:
         UserDB.COLLECTION_NAME = collection
-        user = await UserDB.find_by({"email": str(username)})
-        if not user:
-            try:
-                user = await UserDB.find_by({"edbo_id": int(username)})
-            except:
-                continue
+        user = await UserDB.find_by(
+            {"edbo_id": int(username)} if username.isdigit() else {"email": username})
         if user:
-            break
+            break 
     return user
 
 async def get_user_fullname(*, user: dict) -> str: 
     """
-        Return the full name of the user.
+    Return the full name of the user.
     """
-
     return "{} {} {}".format(
         user.get("last_name"), user.get("first_name"), user.get("middle_name"))
 
 async def create_user(*, user: UserCreate) -> bool:
     """
-        Create a new user in the MongoDB collection.
+    Create a new user in the MongoDB collection.
     """
-
     if await UserDB.find_by({"edbo_id": user.edbo_id}):
         raise exc.CONFLICT(detail="User already exits.")
     UserDB.COLLECTION_NAME = user.role
@@ -57,18 +48,16 @@ async def create_user(*, user: UserCreate) -> bool:
 
 async def read_users(*, role: ROLE, filter: str | None = None, value: Any, skip: int = 0, length: int | None = None) -> List[Dict[str, Any]]:
     """
-        Read all users from the MongoDB collection.
+    Read all users from the MongoDB collection.
     """
-
     UserDB.COLLECTION_NAME = role
     return await UserDB.find_many(
         filter=filter, value=value, skip=skip, length=length)
 
 async def read_user(*, edbo_id: int) -> Dict[str, Any]:
     """
-        Read user from the MongoDB collection.
+    Read user from the MongoDB collection.
     """
-
     user = await get_user_by_username(username=edbo_id)
     if not user:
         raise exc.NOT_FOUND(detail="User not found.")
@@ -76,7 +65,7 @@ async def read_user(*, edbo_id: int) -> Dict[str, Any]:
 
 async def update_all_users(*, collection: ROLE, filter: dict, update: dict):
     """
-        Update users data.
+    Update users data.
     """
     UserDB.COLLECTION_NAME = collection
     await UserDB.update_many(
@@ -87,7 +76,7 @@ async def update_all_users(*, collection: ROLE, filter: dict, update: dict):
 
 async def update_user(*, edbo_id: int, data: dict):
     """
-        Update user data.
+    Update user data.
     """
     user = await get_user_by_username(username=edbo_id)
     if not user:
@@ -100,7 +89,7 @@ async def update_user(*, edbo_id: int, data: dict):
 
 async def delete_user(*, user: dict):
     """
-        Delete user from the MongoDB collection by 'edbo_id'.
+    Delete user from the MongoDB collection by 'edbo_id'.
     """
     if not user:
         raise exc.NOT_FOUND(
@@ -111,7 +100,7 @@ async def delete_user(*, user: dict):
 
 async def authenticate_user(*, username: str | int, plain_pwd: str) -> dict:
     """
-        Authenticate user credentials.
+    Authenticate user credentials.
     """
     user = await get_user_by_username(username=username)
     if not user or not Hash.verify(plain_pwd, user["password"]):
@@ -119,7 +108,6 @@ async def authenticate_user(*, username: str | int, plain_pwd: str) -> dict:
             detail="Couldn't validate credentials",
             headers={"WWW-Authenticate": "Bearer"}
         )
-    
     # Check user scopes (privileges)
     scopes = user.get("scopes")
     for scope in scopes:
@@ -129,7 +117,7 @@ async def authenticate_user(*, username: str | int, plain_pwd: str) -> dict:
 
 async def get_grades(*, edbo_id: int, group: str, **kwargs) -> dict:
     """
-        Get student subject grades.
+    Get student subject grades.
     """
     GradeDB.COLLECTION_NAME = group
     grades: dict = await GradeDB.find_by({"edbo_id": edbo_id})

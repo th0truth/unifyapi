@@ -4,18 +4,18 @@ from fastapi import (
     Depends,
     Header
 )
-from typing import Annotated
-
+from api.deps import get_current_user
 from core.security.jwt import OAuthJWTBearer
 from core.schemas.etc import Token
+from core import exc
 import crud
 
 router = APIRouter(tags=["Authentication"])
 
-@router.post("/login/credentials", response_model=Token)
-async def login_via_credentials(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
+@router.post("/login", response_model=Token)
+async def login_via_credentials(form_data: OAuth2PasswordRequestForm = Depends()):
     """
-        Login with user credentials.
+    Log in using your user credentials.
     """
     user = await crud.authenticate_user(username=form_data.username, plain_pwd=form_data.password)
     token = OAuthJWTBearer.encode(
@@ -23,12 +23,39 @@ async def login_via_credentials(form_data: Annotated[OAuth2PasswordRequestForm, 
     return Token(access_token=token)
 
 @router.post("/token", response_model=Token)
-async def auth_token(token: str = Header()):
+async def auth_token(token: Token = Header()):
     """
-        Login with an access token.
+    Verifies the user credentials of a `token` by decoding and verifying provided claims, then returns a `refreshed` token.
     """
-    return await OAuthJWTBearer.verify(token=token)
+    response = await OAuthJWTBearer.is_jti_in_blacklist(jti=token.access_token)
+    if response:
+        raise exc.UNAUTHORIZED(
+            detail="Token has been revoked."
+        )
+    payload = OAuthJWTBearer.decode(token=token.access_token)
+    if not payload:
+        raise exc.UNAUTHORIZED(
+            detail="Couldn't validate user credentials",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
+    response = await OAuthJWTBearer.add_jti_to_blacklist(token=token.access_token)
+    if not response:
+        raise exc.UNAUTHORIZED(
+            detail="An error occured while adding token to blacklist."
+        )
+    refresh_token = OAuthJWTBearer.refresh(payload=payload)
+    return Token(access_token=refresh_token)
 
-@router.post("/logout")
+@router.post("/logout", dependencies=[Depends(get_current_user)])
 async def logout(token: Token = Header()):
-    pass
+    """
+    Log out from user account.
+    """
+    response = await OAuthJWTBearer.add_jti_to_blacklist(jti=token.access_token)
+    if not response:
+        raise exc.UNAUTHORIZED(
+            detail="An error occured while adding JWT to blacklist."
+        )
+    raise exc.OK(
+        detail="Successfully logged out."
+    )

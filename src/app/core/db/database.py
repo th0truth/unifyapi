@@ -1,4 +1,4 @@
-from typing import Any, List, Dict
+from typing import Any
 from bson.objectid import ObjectId
 from motor.motor_asyncio import (
     AsyncIOMotorClient,
@@ -23,11 +23,10 @@ class MongoDB:
     COLLECTION_NAME: str
 
     @classmethod
-    async def create(cls, doc: dict) -> Dict[str, Any]:
+    async def create(cls, doc: dict) -> dict:
         """Create a document in the MongoDB collection."""
         collection = await cls.get_collection()
-        d = collection.insert_one(doc)
-        print(d)
+        collection.insert_one(doc)
 
     @classmethod
     async def find_many(cls, doc: dict | None = None, length: int | None = None, skip: int = 0) -> list[dict]:
@@ -37,7 +36,7 @@ class MongoDB:
         return [j for j in await cursor][skip:]
 
     @classmethod
-    async def find_by(cls, filter: dict | None = None) -> Dict[str, Any]:
+    async def find_by(cls, filter: dict | None = None) -> dict[str, Any]:
         """Find a document by `filter` in the MongoDB collection."""
         collection = await cls.get_collection()
         return await collection.find_one(filter)
@@ -89,7 +88,7 @@ class MongoDB:
         return await cls.client.list_database_names()
 
     @classmethod
-    async def get_collections(cls) -> List[str]:
+    async def get_collections(cls) -> list[str]:
         """Get a list of database collections."""
         database = await cls.get_database()
         return await database.list_collection_names()

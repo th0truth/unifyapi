@@ -20,13 +20,13 @@ from core.schemas.etc import (
 )
 
 from core import exc
-import api.deps as deps
+from api.deps import get_current_user
 import crud
 
 router = APIRouter(tags=["User"])
 
 @router.get("/me", response_model=UserPrivate)
-async def get_current_user(user: dict = Depends(deps.get_current_user)):
+async def get_current_user(user: dict = Depends(get_current_user)):
     """
     Read the user's private data.
     """
@@ -34,7 +34,7 @@ async def get_current_user(user: dict = Depends(deps.get_current_user)):
 
 @router.patch("/add-email")
 async def add_user_email(
-        user: dict = Depends(deps.get_current_user),
+        user: dict = Depends(get_current_user),
         user_update: UserUpdate = Body()
     ):
     """
@@ -51,7 +51,7 @@ async def add_user_email(
 
 @router.patch("/update/password")
 async def update_password_me(
-        user: dict = Depends(deps.get_current_user),
+        user: dict = Depends(get_current_user),
         body: UpdatePassword = Body()
     ):
     """
@@ -75,7 +75,7 @@ async def password_recovery(body: PasswordRecovery = Body()):
 
 @router.get("/disciplines")
 async def get_user_disciplines(
-        user: dict = Depends(deps.get_current_user)
+        user: dict = Depends(get_current_user)
     ):
     """
     Read the user's disciplines.
@@ -102,7 +102,7 @@ async def get_user_disciplines(
 
 @router.get("/grades/my/all")
 async def get_user_all_grades(
-        user: dict = Security(deps.get_current_user, scopes=["student"]),
+        user: dict = Security(get_current_user, scopes=["student"]),
         date: str | None = None
     ):
     """
@@ -116,7 +116,7 @@ async def get_user_all_grades(
 
 @router.post("/grades/my")
 async def get_user_grades(
-        user: dict = Security(deps.get_current_user, scopes=["student"]),
+        user: dict = Security(get_current_user, scopes=["student"]),
         date: str | None = None,
         body: Grade = Body()
     ):
