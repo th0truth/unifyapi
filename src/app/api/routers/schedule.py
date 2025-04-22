@@ -36,7 +36,7 @@ async def get_teacher_info(lesson: dict) -> dict:
 @router.get("/my", response_model=list[Schedule])
 async def read_my_schedule(user: dict = Depends(get_current_user)):
     """
-        Return the schedule for the current user. 
+    Return the schedule for the current user. 
     """
     role: ROLE = user.get("role")
     match role:
@@ -69,7 +69,7 @@ async def read_group_schedule(
         length: int | None = None,
     ):
     """
-        Return the schedule for the given group. 
+    Return the schedule for the given group. 
     """
     ScheduleDB.COLLECTION_NAME = group
     schedule = await ScheduleDB.find_many(skip=skip, length=length)
@@ -86,7 +86,7 @@ async def read_schedule_by_id(
         id: str,
     ):
     """
-        Return the schedule for the given group with a unique id. 
+    Return the schedule for the given group with a unique id. 
     """
     ScheduleDB.COLLECTION_NAME = group
     lesson = await ScheduleDB.find_by({"lesson_id": id})
@@ -105,9 +105,8 @@ async def create_schedule(
         get_current_user, scopes=["teacher", "admin"]),
 ):
     """
-        Create a schedule for the group.
+    Create a schedule for the group.
     """
-
     # search given group
     groups = await ScheduleDB.get_collections()    
     if body.group not in groups:
@@ -166,10 +165,10 @@ async def create_upload_file(file: UploadFile):
 # async def download_file(filename: str):
     # pass
 
-@router.delete("/delete/file")
+@router.delete("/delete/file", dependencies=[Depends(get_current_user)])
 async def delete_file(filename: str = Body()):
     """
-        Delete a file by `filename`.    
+    Delete a file by `filename`.    
     """
     ScheduleDB.COLLECTION_NAME = "fs.files"
     file = await ScheduleDB.find_by({"filename": filename})

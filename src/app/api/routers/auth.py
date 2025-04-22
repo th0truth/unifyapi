@@ -4,7 +4,9 @@ from fastapi import (
     Depends,
     Header
 )
+
 from api.deps import get_current_user
+
 from core.security.jwt import OAuthJWTBearer
 from core.schemas.etc import Token
 from core import exc
@@ -15,7 +17,7 @@ router = APIRouter(tags=["Authentication"])
 @router.post("/login", response_model=Token)
 async def login_via_credentials(form_data: OAuth2PasswordRequestForm = Depends()):
     """
-    Log in using your user credentials.
+    Log in using user credentials.
     """
     user = await crud.authenticate_user(username=form_data.username, plain_pwd=form_data.password)
     token = OAuthJWTBearer.encode(
@@ -25,7 +27,7 @@ async def login_via_credentials(form_data: OAuth2PasswordRequestForm = Depends()
 @router.post("/token", response_model=Token)
 async def auth_token(token: Token = Header()):
     """
-    Verifies the user credentials of a `token` by decoding and verifying provided claims, then returns a `refreshed` token.
+    Log in using an access token.
     """
     response = await OAuthJWTBearer.is_jti_in_blacklist(jti=token.access_token)
     if response:
@@ -38,7 +40,7 @@ async def auth_token(token: Token = Header()):
             detail="Couldn't validate user credentials",
             headers={"WWW-Authenticate": "Bearer"}
         )
-    response = await OAuthJWTBearer.add_jti_to_blacklist(token=token.access_token)
+    response = await OAuthJWTBearer.add_jti_to_blacklist(jti=token.access_token)
     if not response:
         raise exc.UNAUTHORIZED(
             detail="An error occured while adding token to blacklist."

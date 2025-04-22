@@ -3,13 +3,13 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from core.config import settings
-from core.db.database import MongoDB
 from api.api import api_router
+from core.db import MongoDB
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     async with MongoDB() as client:
-        yield client
+        yield client 
 
 app = FastAPI(
     title=settings.NAME,

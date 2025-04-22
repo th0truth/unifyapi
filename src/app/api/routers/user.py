@@ -1,6 +1,5 @@
 from fastapi import (
     APIRouter,
-    Security,
     Depends,
     Body,
 )
@@ -13,7 +12,6 @@ from core.schemas.user import (
 )
 from core.schemas.teacher import Teacher
 from core.schemas.group import GroupDB
-from core.schemas.grade import Grade
 from core.schemas.etc import (
     UpdatePassword,
     PasswordRecovery
@@ -32,7 +30,7 @@ async def get_current_user(user: dict = Depends(get_current_user)):
     """
     return user
 
-@router.patch("/add-email")
+@router.patch("/update/email")
 async def add_user_email(
         user: dict = Depends(get_current_user),
         user_update: UserUpdate = Body()
@@ -74,9 +72,7 @@ async def password_recovery(body: PasswordRecovery = Body()):
     await crud.update_user(edbo_id=user.get("edbo_id"), data={"password": Hash.hash(plain=body.new_password)})
 
 @router.get("/disciplines")
-async def get_user_disciplines(
-        user: dict = Depends(get_current_user)
-    ):
+async def get_user_disciplines(user: dict = Depends(get_current_user)):
     """
     Read the user's disciplines.
     """
@@ -99,33 +95,3 @@ async def get_user_disciplines(
         case _:
             raise exc.CONFLICT()
     return disciplines
-
-@router.get("/grades/my/all")
-async def get_user_all_grades(
-        user: dict = Security(get_current_user, scopes=["student"]),
-        date: str | None = None
-    ):
-    """
-    Fetch all grades for the current user.
-    """
-    return await crud.get_grades(
-        edbo_id=user.get("edbo_id"),
-        group=user.get("group"),
-        date=date
-    )
-
-@router.post("/grades/my")
-async def get_user_grades(
-        user: dict = Security(get_current_user, scopes=["student"]),
-        date: str | None = None,
-        body: Grade = Body()
-    ):
-    """
-    Fetch the current user's grades by `subject`.    
-    """
-    return await crud.get_grades(
-        edbo_id=user.get("edbo_id"),
-        group=user.get("group"),
-        subject=body.subject,
-        date=date
-    )

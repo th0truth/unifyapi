@@ -24,7 +24,7 @@ class UserPrivate(User):
     email: EmailStr | None = None
     phone_number: List[int] | None = None
     scopes: list
-    password: str
+    # password: str
 
 class UserCreate(User):
     acc_date: datetime

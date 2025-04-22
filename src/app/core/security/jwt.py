@@ -44,12 +44,19 @@ class OAuthJWTBearer:
 
     @staticmethod
     async def add_jti_to_blacklist(jti: str) -> bool:
+        """
+        Adds `jti` to the blacklist. 
+        """
         async with Redis(db=0) as client:
-            response = await client.set(name=jti, value="", ex=settings.JTI_EXPIRY_SEC)
+            response = await client.setex(
+                name=jti, time=settings.JTI_EXPIRY_SEC, value="Revoked")
             return response
         
     @staticmethod
     async def is_jti_in_blacklist(jti: str) -> bool:
+        """
+        Checks if the `jti` is in the blacklist.
+        """
         async with Redis(db=0) as client:
             response = await client.exists(jti)
             return response

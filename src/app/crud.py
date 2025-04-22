@@ -5,6 +5,7 @@ from typing import (
 )
 
 from core.config import settings
+
 from core.security.utils import Hash
  
 from core.schemas.user import (
@@ -18,7 +19,7 @@ from core import exc
 async def get_user_by_username(*, username: int | str) -> dict | None:
     """
     Find user by username. e.g `edbo_id` or `email` 
-    """
+    """ 
     collections = await UserDB.get_collections()
     for collection in collections:
         UserDB.COLLECTION_NAME = collection

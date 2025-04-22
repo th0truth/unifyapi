@@ -50,6 +50,36 @@ async def read_students(
     """
     return await crud.read_users(role="students", filter="group", value=group, skip=skip, length=length)
 
+@router.post("/grades/my")
+async def get_current_student_grades(
+        user: dict = Security(get_current_user, scopes=["student"]),
+        date: str | None = None,
+        body: Grade = Body()
+    ):
+    """
+    Fetch the current user's grades by `subject`.    
+    """
+    return await crud.get_grades(
+        edbo_id=user.get("edbo_id"),
+        group=user.get("group"),
+        subject=body.subject,
+        date=date
+    )
+
+@router.get("/grades/my/all")
+async def get_current_student_all_grades(
+        user: dict = Security(get_current_user, scopes=["student"]),
+        date: str | None = None
+    ):
+    """
+    Fetch all grades for the current user.
+    """
+    return await crud.get_grades(
+        edbo_id=user.get("edbo_id"),
+        group=user.get("group"),
+        date=date
+    )
+
 @router.post("/grades/{edbo_id}",
     dependencies=[Security(get_current_user, scopes=["teacher", "admin"])])
 async def get_student_grades(
@@ -93,6 +123,7 @@ async def get_student_all_grades(
         group=student.get("group"),
         date=date
     )
+
 
 @router.patch("/set-grade/{edbo_id}")
 async def set_grade(

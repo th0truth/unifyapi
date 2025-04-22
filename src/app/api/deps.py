@@ -6,7 +6,6 @@ from fastapi.security import (
 
 from core.config import settings
 from core.security.jwt import OAuthJWTBearer
-from core.db import Redis
 
 from core.schemas.etc import TokenData
 from core.schemas.user import UserDB
@@ -23,7 +22,9 @@ async def get_current_user(
 ) -> dict:
     payload = OAuthJWTBearer.decode(token=token)
     if not payload:
-        raise exc.UNAUTHORIZED(detail="Invalid user credentials.")
+        raise exc.UNAUTHORIZED(
+            detail="Invalid user credentials."
+        )
     UserDB.COLLECTION_NAME = payload.get("role")
     edbo_id = int(payload.get("sub"))
     user = await UserDB.find_by({"edbo_id": edbo_id})

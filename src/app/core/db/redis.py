@@ -8,12 +8,11 @@ class Redis:
             self,
             db: str | int,
             protocol: int | None = 2
-        ) -> None:
+        ):
         self.db = db
         self.protocol = protocol
-        self.client = None
 
-    async def __aenter__(self) -> aioredis.Redis:
+    async def __aenter__(self):
         """
         Create a connection to Redis cluster.
         """
@@ -35,7 +34,7 @@ class Redis:
         except aioredis.ConnectionError:
             logger.error("An error occured while connecting to Redis.")
 
-    async def __aexit__(self, exc_type, exc, tb) -> None:
+    async def __aexit__(self, exc_type, exc, tb):
         """
         Disconnect Redis cluster from API.
         """
