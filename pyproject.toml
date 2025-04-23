@@ -6,7 +6,6 @@ authors = [
     {name = "the truth"}
 ]
 license = {text = "MIT"}
-readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "uvicorn (>=0.34.0,<0.35.0)",
