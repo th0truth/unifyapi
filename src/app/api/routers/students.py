@@ -31,7 +31,7 @@ UserDB.COLLECTION_NAME = "students"
     dependencies=[Security(get_current_user, scopes=["admin"])])
 async def create_student(student: StudentCreate = Body()):
     """
-        Create a student account.
+    Create a student account.
     """
     group = await GroupDB.find_by({"group": student.group})
     if not group:
@@ -46,7 +46,7 @@ async def read_students(
         length: int | None = None
     ) -> List[Student]:
     """
-        Return a list of all existing students from the given group.
+    Return a list of all existing students from the given group.
     """
     return await crud.read_users(role="students", filter="group", value=group, skip=skip, length=length)
 
@@ -88,7 +88,7 @@ async def get_student_grades(
         body: Grade = Body() 
     ):
     """
-        Return the specified student's subject grades.
+    Return the specified student's subject grades.
     """
     student = await UserDB.find_by({"edbo_id": edbo_id})
     if not student:
@@ -110,7 +110,7 @@ async def get_student_all_grades(
         date: str | None = Query(None),
     ):
     """
-        Return all subject grades. 
+    Return all subject grades. 
     """
     student = await UserDB.find_by({"edbo_id": edbo_id})
     if not student:
@@ -133,7 +133,7 @@ async def set_grade(
         user: dict = Security(get_current_user, scopes=["teacher"]),
     ):
     """
-        Set given student grade.
+    Set given student grade.
     """
     if body.subject not in user.get("disciplines"):
         raise exc.FORBIDDEN(

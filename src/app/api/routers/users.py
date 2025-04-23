@@ -19,7 +19,7 @@ router = APIRouter(tags=["Users"])
     dependencies=[Security(get_current_user, scopes=["admin"])])
 async def read_users(role: ROLE, filter: str | None = None, value: Any = None, skip: int = 0, length: int | None = None):
     """
-        Return all users.
+    Return all users.
     """
     return await crud.read_users(
         role=role, filter=filter, value=value, skip=skip, length=length)
@@ -28,7 +28,7 @@ async def read_users(role: ROLE, filter: str | None = None, value: Any = None, s
     dependencies=[Security(get_current_user, scopes=["teacher", "admin"])])
 async def read_user_by_edbo_id(edbo_id: int = Path()):
     """
-        Return user data by 'edbo_id'.
+    Return user data by 'edbo_id'.
     """
     return await crud.read_user(edbo_id=edbo_id)
 

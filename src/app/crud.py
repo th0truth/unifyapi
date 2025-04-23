@@ -132,5 +132,5 @@ async def get_grades(*, edbo_id: int, group: str, **kwargs) -> dict:
         else:
             grades = {}
             for subject, value in disciplines.items():
-                grades.update({subject: value[date] if date else value})
+                grades.update({subject: value.get(date) if date else value})
     return grades

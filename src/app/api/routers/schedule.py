@@ -152,7 +152,7 @@ async def create_schedule(
         detail="The lesson has been created successfully."
     )
 
-@router.post("/upload/file", dependencies=[Depends(get_current_user)])
+@router.post("/upload/file", deprecated=True, dependencies=[Depends(get_current_user)])
 async def create_upload_file(file: UploadFile):
     """
         Upload file for schedule.
@@ -165,7 +165,7 @@ async def create_upload_file(file: UploadFile):
 # async def download_file(filename: str):
     # pass
 
-@router.delete("/delete/file", dependencies=[Depends(get_current_user)])
+@router.delete("/delete/file", deprecated=True, dependencies=[Depends(get_current_user)])
 async def delete_file(filename: str = Body()):
     """
     Delete a file by `filename`.    

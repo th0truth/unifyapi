@@ -22,7 +22,7 @@ async def read_my_group(
         user: dict = Security(get_current_user, scopes=["student", "teacher"])
     ):
     """
-        Return the student group.  
+    Return the student group.  
     """
     role: ROLE = user.get("role")
     match role:
@@ -52,7 +52,7 @@ async def read_my_group(
     dependencies=[Security(get_current_user, scopes=["teacher", "admin"])])
 async def read_groups():
     """
-        Return all student groups. 
+    Return all student groups. 
     """
     groups = {}
     degrees = await GroupDB.get_collections()
@@ -66,7 +66,7 @@ async def read_groups():
     dependencies=[Security(get_current_user, scopes=["admin"])])
 async def create_group(body: Group = Body()):
     """
-        Create the student group.
+    Create the student group.
     """
     degrees = await GroupDB.get_collections()
     for degree in degrees:
