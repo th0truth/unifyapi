@@ -2,9 +2,9 @@ from starlette.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
-from core.config import settings
-from api.api import api_router
-from core.db import MongoDB
+from .core.config import settings
+from .api.api import api_router
+from .core.db import MongoDB
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
