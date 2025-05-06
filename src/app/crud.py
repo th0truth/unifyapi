@@ -1,3 +1,4 @@
+from fastapi import HTTPException, status
 from typing import (
     List,
     Dict,
@@ -14,7 +15,6 @@ from core.schemas.user import (
     ROLE
 )
 from core.schemas.grade import GradeDB
-from core import exc
 
 async def get_user_by_username(*, username: int | str) -> dict | None:
     """
@@ -41,11 +41,17 @@ async def create_user(*, user: UserCreate) -> bool:
     Create a new user in the MongoDB collection.
     """
     if await UserDB.find_by({"edbo_id": user.edbo_id}):
-        raise exc.CONFLICT(detail="User already exits.")
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="User already exits."
+        )
     UserDB.COLLECTION_NAME = user.role
     user.password = Hash.hash(plain=user.password)
     await UserDB.create(doc=user.model_dump())
-    raise exc.CREATED(detail="User created successfully.")
+    raise HTTPException(
+        status_code=status.HTTP_201_CREATED,
+        detail="User created successfully."
+    )
 
 async def read_users(*, role: ROLE, filter: str | None = None, value: Any, skip: int = 0, length: int | None = None) -> List[Dict[str, Any]]:
     """
@@ -61,7 +67,10 @@ async def read_user(*, edbo_id: int) -> Dict[str, Any]:
     """
     user = await get_user_by_username(username=edbo_id)
     if not user:
-        raise exc.NOT_FOUND(detail="User not found.")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found."
+        )
     return user 
 
 async def update_all_users(*, collection: ROLE, filter: dict, update: dict):
@@ -72,7 +81,8 @@ async def update_all_users(*, collection: ROLE, filter: dict, update: dict):
     await UserDB.update_many(
         filter=filter,
         update=update)
-    raise exc.OK(
+    raise HTTPException(
+        status_code=status.HTTP_200_OK,
         detail="User accounts has been updated.")
 
 async def update_user(*, edbo_id: int, data: dict):
@@ -81,11 +91,15 @@ async def update_user(*, edbo_id: int, data: dict):
     """
     user = await get_user_by_username(username=edbo_id)
     if not user:
-       raise exc.NOT_FOUND(detail="User not found.") 
+       raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found."
+        ) 
     await UserDB.update_one(
         filter={"edbo_id": user.get("edbo_id")},
         update=data)
-    raise exc.OK(
+    raise HTTPException(
+        status_code=status.HTTP_200_OK,
         detail="The user account has been updated.")
 
 async def delete_user(*, user: dict):
@@ -93,10 +107,13 @@ async def delete_user(*, user: dict):
     Delete user from the MongoDB collection by 'edbo_id'.
     """
     if not user:
-        raise exc.NOT_FOUND(
-            detail="User not found.")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found."
+        )
     await UserDB.delete_document_by({"edbo_id": user.get("edbo_id")})
-    raise exc.OK(
+    raise HTTPException(
+        status_code=status.HTTP_200_OK,
         detail="The user account has been deleted")
 
 async def authenticate_user(*, username: str | int, plain_pwd: str) -> dict:
@@ -105,7 +122,8 @@ async def authenticate_user(*, username: str | int, plain_pwd: str) -> dict:
     """
     user = await get_user_by_username(username=username)
     if not user or not Hash.verify(plain_pwd, user["password"]):
-        raise exc.UNAUTHORIZED(
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Couldn't validate credentials",
             headers={"WWW-Authenticate": "Bearer"}
         )
@@ -113,7 +131,10 @@ async def authenticate_user(*, username: str | int, plain_pwd: str) -> dict:
     scopes = user.get("scopes")
     for scope in scopes:
         if scope not in settings.scopes:
-            raise exc.UNAUTHORIZED("Invalid user credentials.")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid user credentials."
+            )
     return user
 
 async def get_grades(*, edbo_id: int, group: str, **kwargs) -> dict:

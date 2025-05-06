@@ -18,7 +18,7 @@ class MongoDB:
             https://motor.readthedocs.io/en/stable/tutorial-asyncio.html
     """
 
-    client: AsyncIOMotorClient
+    client: AsyncIOMotorClient = None
     DATABASE_NAME: str
     COLLECTION_NAME: str
 
@@ -111,20 +111,22 @@ class MongoDB:
         return AsyncIOMotorGridFSBucket(database=database, chunk_size_bytes=16)
 
     @classmethod
-    async def __aenter__(cls) -> None:
+    async def __aenter__(cls):
         """Create a connection between API and MongoDB Cluster."""
-        try:
-            cls.client = AsyncIOMotorClient(
-                f"mongodb+srv://{settings.DB_USERNAME}:{settings.DB_PASSWORD}@{settings.DB_HOSTNAME}.mongodb.net")
-            logger.info("MongoDB cluster connected")
-        except Exception as err:
-            logger.error(err)
+        if not cls.client:
+            try:
+                cls.client = AsyncIOMotorClient(
+                    f"mongodb+srv://{settings.DB_USERNAME}:{settings.DB_PASSWORD}@{settings.DB_HOSTNAME}.mongodb.net")
+                logger.info("MongoDB cluster connected")
+            except Exception as err:
+                logger.error(err)
     
     @classmethod
-    async def __aexit__(cls, exc_type, exc_val, exc_tb) -> None:
+    async def __aexit__(cls, exc_type, exc_val, exc_tb):
         """Disconnect MongoDB Cluster from API."""
-        try:
-            cls.client.close()
-            logger.info("MongoDB cluster disconnected")
-        except Exception as err:
-            logger.error(err)
+        if cls.client:
+            try:
+                cls.client.close()
+                logger.info("MongoDB cluster disconnected")
+            except Exception as err:
+                logger.error(err)

@@ -1,5 +1,7 @@
 from fastapi import (
+    HTTPException,
     APIRouter,
+    status,
     Security,
     Body
 )
@@ -13,7 +15,6 @@ from core.schemas.group import (
     Group,
     GroupDB
 )
-from core import exc
 
 router = APIRouter(tags=["Groups"])
 
@@ -30,7 +31,8 @@ async def read_my_group(
             GroupDB.COLLECTION_NAME = user.get("degree")
             group = await GroupDB.find_by({"group": user.get("group")})
             if not group:
-                raise exc.NOT_FOUND(
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
                     detail="The student's group not found")
             
             teacher_edbo = group.pop("class_teacher_edbo")
@@ -44,7 +46,8 @@ async def read_my_group(
                 group = await GroupDB.find_by({"class_teacher_edbo": user.get("edbo_id")})
                 if group: break 
             if not group:
-                raise exc.NOT_FOUND(
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
                     detail="You don't have your own group.")
     return group
 
@@ -72,13 +75,17 @@ async def create_group(body: Group = Body()):
     for degree in degrees:
         GroupDB.COLLECTION_NAME = degree
         if await GroupDB.find_by({"group": body.group}):
-            raise exc.CONFLICT(
-                detail="Group already exits.")
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Group already exits."
+            )
      
     GroupDB.COLLECTION_NAME = body.degree
     await GroupDB.create(doc=body.model_dump(exclude={"additionalProp1"}))
-    raise exc.CREATED(
-        detail="Group created successfully.")
+    raise HTTPException(
+        status_code=status.HTTP_201_CREATED,
+        detail="Group created successfully."
+    )
  
 @router.delete("/delete/{group}",
     dependencies=[Security(get_current_user, scopes=["admin"])])
@@ -88,10 +95,13 @@ async def delete_group(group: str):
         GroupDB.COLLECTION_NAME = degree
         group: dict = await GroupDB.find_by({"group": group})
         if not group:
-            raise exc.NOT_FOUND(
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
                 detail="Given group not found."
             )
  
     await GroupDB.delete_document_by({"group": group})
-    raise exc.OK(
-        detail="The given group has been deleted.") 
+    raise HTTPException(
+        status_code=status.HTTP_200_OK,
+        detail="The given group has been deleted."
+    ) 

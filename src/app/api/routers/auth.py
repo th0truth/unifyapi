@@ -1,15 +1,16 @@
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi import (
+    HTTPException,
     APIRouter,
+    status,
     Depends,
-    Header
+    Header,
 )
 
 from api.deps import get_current_user
 
 from core.security.jwt import OAuthJWTBearer
 from core.schemas.etc import Token
-from core import exc
 import crud
 
 router = APIRouter(tags=["Authentication"])
@@ -31,18 +32,21 @@ async def auth_token(token: Token = Header()):
     """
     response = await OAuthJWTBearer.is_jti_in_blacklist(jti=token.access_token)
     if response:
-        raise exc.UNAUTHORIZED(
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token has been revoked."
         )
     payload = OAuthJWTBearer.decode(token=token.access_token)
     if not payload:
-        raise exc.UNAUTHORIZED(
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Couldn't validate user credentials",
             headers={"WWW-Authenticate": "Bearer"}
         )
     response = await OAuthJWTBearer.add_jti_to_blacklist(jti=token.access_token)
     if not response:
-        raise exc.UNAUTHORIZED(
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
             detail="An error occured while adding token to blacklist."
         )
     refresh_token = OAuthJWTBearer.refresh(payload=payload)
@@ -55,9 +59,11 @@ async def logout(token: Token = Header()):
     """
     response = await OAuthJWTBearer.add_jti_to_blacklist(jti=token.access_token)
     if not response:
-        raise exc.UNAUTHORIZED(
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
             detail="An error occured while adding JWT to blacklist."
         )
-    raise exc.OK(
+    raise HTTPException(
+        status_code=status.HTTP_200_OK,
         detail="Successfully logged out."
     )

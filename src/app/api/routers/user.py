@@ -1,5 +1,7 @@
 from fastapi import (
+    HTTPException,
     APIRouter,
+    status,
     Depends,
     Body,
 )
@@ -17,7 +19,6 @@ from core.schemas.etc import (
     PasswordRecovery
 )
 
-from core import exc
 from api.deps import get_current_user
 import crud
 
@@ -39,7 +40,8 @@ async def add_user_email(
     Add email to the user account.
     """
     if await crud.get_user_by_username(username=user_update.email):
-        raise exc.CONFLICT(
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
             detail="That email is already associated with another account.")
     user = await crud.authenticate_user(username=user.get("edbo_id"), plain_pwd=user_update.password) 
     await crud.update_user(
@@ -57,7 +59,10 @@ async def update_password_me(
     """
     user = await crud.authenticate_user(username=user.get("edbo_id"), plain_pwd=body.current_password)
     if not user:
-        raise exc.UNAUTHORIZED(detail="Incorrect password")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect password"
+        )
     await crud.update_user(
         edbo_id=user.get("edbo_id"), data={"password": Hash.hash(plain=body.new_password)})
 
@@ -68,7 +73,10 @@ async def password_recovery(body: PasswordRecovery = Body()):
     """
     user = await crud.get_user_by_username(username=body.email)
     if not user:
-        raise exc.NOT_FOUND(detail="User not found.")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found."
+        )
     await crud.update_user(edbo_id=user.get("edbo_id"), data={"password": Hash.hash(plain=body.new_password)})
 
 @router.get("/disciplines")
@@ -83,7 +91,8 @@ async def get_user_disciplines(user: dict = Depends(get_current_user)):
             GroupDB.COLLECTION_NAME = user.get("degree")
             group = await GroupDB.find_by({"group": user.get("group")})
             if not group:
-                raise exc.NOT_FOUND(
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
                     detail="Your group not found in the system."
                 )
             for discipline, edbo_id in group.get("disciplines").items():
@@ -92,6 +101,4 @@ async def get_user_disciplines(user: dict = Depends(get_current_user)):
                     {discipline: Teacher(**await UserDB.find_by({"edbo_id": edbo_id}))})
         case "teachers":
             disciplines = user.get("disciplines")
-        case _:
-            raise exc.CONFLICT()
     return disciplines

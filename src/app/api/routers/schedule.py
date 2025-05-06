@@ -1,7 +1,9 @@
 from datetime import datetime
 from fastapi import (
+    HTTPException,
     APIRouter,
     UploadFile,
+    status,
     Security,
     Depends,
     Query,
@@ -21,7 +23,6 @@ from core.schemas.schedule import (
     ScheduleDB
 )
 
-from core import exc
 import crud
 
 router = APIRouter(tags=["Schedule"])
@@ -56,7 +57,8 @@ async def read_my_schedule(user: dict = Depends(get_current_user)):
                 if schedule:
                     break
     if not schedule:
-        raise exc.NOT_FOUND(
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
             detail="Your schedule not found."
         )
     return schedule
@@ -74,7 +76,10 @@ async def read_group_schedule(
     ScheduleDB.COLLECTION_NAME = group
     schedule = await ScheduleDB.find_many(skip=skip, length=length)
     if not schedule:
-        raise exc.NOT_FOUND(detail="Group schedule not found.")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Group schedule not found."
+        )
     for lesson in schedule:
         lesson.update({"teacher": await get_teacher_info(lesson=lesson)})
     return schedule
@@ -91,7 +96,10 @@ async def read_schedule_by_id(
     ScheduleDB.COLLECTION_NAME = group
     lesson = await ScheduleDB.find_by({"lesson_id": id})
     if not lesson:
-        raise exc.NOT_FOUND(detail="Lesson not found.")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Lesson not found."
+        )
     await get_teacher_info(lesson=lesson)
     return lesson
 
@@ -110,29 +118,37 @@ async def create_schedule(
     # search given group
     groups = await ScheduleDB.get_collections()    
     if body.group not in groups:
-        raise exc.NOT_FOUND(
-            detail="The group not found.")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="The group not found."
+        )
     ScheduleDB.COLLECTION_NAME = body.group
 
     role: ROLE = user.get("role")
     match role:
         case "teachers":
             if body.name not in user.get("disciplines"):
-                raise exc.FORBIDDEN(
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
                     detail="You don't have access to this discipline."
                 )
         case "admins":
             if not teacher_edbo:
-                raise exc.CONFLICT(
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
                     detail="The `teacher_edbo` field must be filled in."
                 )
             UserDB.COLLECTION_NAME = "teachers"
             teacher = await UserDB.find_by({"edbo_id": teacher_edbo})
             if not teacher:
-                raise exc.NOT_FOUND("Teacher not found.")
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Teacher not found."
+                )
             disciplines = teacher.get("disciplines")
             if body.name not in disciplines:
-                raise exc.FORBIDDEN(
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
                     detail="This teacher don't have access to this discipine."
                 )
 
@@ -148,7 +164,8 @@ async def create_schedule(
         "lesson_id": str(uuid.uuid4()),
         "file_id": file_id,
             **body.model_dump()})
-    raise exc.CREATED(
+    raise HTTPException(
+        status_code=status.HTTP_201_CREATED,
         detail="The lesson has been created successfully."
     )
 
@@ -173,11 +190,14 @@ async def delete_file(filename: str = Body()):
     ScheduleDB.COLLECTION_NAME = "fs.files"
     file = await ScheduleDB.find_by({"filename": filename})
     if not file:
-        raise exc.NOT_FOUND(
-            detail="File not found.")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="File not found."
+        )
     file_id = file.get("_id")
     await ScheduleDB.delete_file(file_id=file_id)
-    raise exc.OK(
+    raise HTTPException(
+        status_code=status.HTTP_200_OK,
         detail="File has been deleted successfully."
     )
 

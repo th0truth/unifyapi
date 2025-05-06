@@ -1,4 +1,4 @@
-from fastapi import Depends
+from fastapi import Depends, HTTPException, status
 from fastapi.security import (
     OAuth2PasswordBearer,
     SecurityScopes
@@ -10,8 +10,6 @@ from core.security.jwt import OAuthJWTBearer
 from core.schemas.etc import TokenData
 from core.schemas.user import UserDB
 
-from core import exc
-
 oauth2_scheme = OAuth2PasswordBearer(
     tokenUrl=f"{settings.API_V1_STR}/auth/login",
     scopes=settings.scopes)
@@ -22,7 +20,8 @@ async def get_current_user(
 ) -> dict:
     payload = OAuthJWTBearer.decode(token=token)
     if not payload:
-        raise exc.UNAUTHORIZED(
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
             detail="Invalid user credentials."
         )
     UserDB.COLLECTION_NAME = payload.get("role")
@@ -33,6 +32,7 @@ async def get_current_user(
     if security_scopes.scopes:
         for scope in token_data.scopes:
             if scope not in security_scopes.scopes:
-                raise exc.UNAUTHORIZED(
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
                     detail="Not enough permissions")
     return user

@@ -1,7 +1,9 @@
 from datetime import datetime
 from typing import List
 from fastapi import (
+    HTTPException,
     APIRouter,
+    status,
     Security,
     Query,
     Body
@@ -20,7 +22,6 @@ from core.schemas.grade import (
     GradeDB
 )
 
-from core import exc
 import crud
 
 router = APIRouter(tags=["Students"])
@@ -35,7 +36,10 @@ async def create_student(student: StudentCreate = Body()):
     """
     group = await GroupDB.find_by({"group": student.group})
     if not group:
-        raise exc.NOT_FOUND("The student's group not found.")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="The student's group not found."
+        )
     return await crud.create_user(user=student)
 
 @router.get("/all/{group}", response_model=List[Student],
@@ -92,7 +96,8 @@ async def get_student_grades(
     """
     student = await UserDB.find_by({"edbo_id": edbo_id})
     if not student:
-        raise exc.NOT_FOUND(
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
             detail="Student not found."
         )
     
@@ -114,7 +119,8 @@ async def get_student_all_grades(
     """
     student = await UserDB.find_by({"edbo_id": edbo_id})
     if not student:
-        raise exc.NOT_FOUND(
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
             detail="Student not found."
         )
 
@@ -136,14 +142,16 @@ async def set_grade(
     Set given student grade.
     """
     if body.subject not in user.get("disciplines"):
-        raise exc.FORBIDDEN(
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
             detail="You don't have access to this discipline."
         )
     
     UserDB.COLLECTION_NAME = "students"
     student = await UserDB.find_by({"edbo_id": edbo_id})
     if not student:
-        raise exc.NOT_FOUND(
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
             detail="Student not found."
         )
     
@@ -156,6 +164,7 @@ async def set_grade(
         update={
             f"grades.{body.subject}.{date}": body.grade}
     )
-    raise exc.OK(
+    raise HTTPException(
+        status_code=status.HTTP_200_OK,
         detail="Student grade successfully added."
     )
