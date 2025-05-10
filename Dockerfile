@@ -1,19 +1,22 @@
-FROM python:3.13
+FROM python:3.11-slim-bookworm
 
-WORKDIR /app
+ENV PYTHONUNBUFFERED=1
 
-RUN pip install --upgrade pip
+WORKDIR /app/
 
-RUN pip install poetry
+ENV PATH="/app/.venv/bin:$PATH"
 
-COPY ./pyproject.toml /app/ 
+RUN pip install --no-cache-dir poetry
 
-# RUN poetry install --no-interaction --no-ansi
-# RUN poetry config virtualenvs.create false \
-    # && poetry install --no-interaction --no-ansi --no-root
-# 
-# COPY . /app/
-# 
-# RUN poetry install --no-interaction --no-ansi
+COPY ./pyproject.toml /app/
 
-CMD ["uvicorn", "app/main:app", "--host", "127.0.0.0", "--port", "8000", "--reload"]
+RUN poetry config virtualenvs.create false \
+    && poetry install --no-interaction --no-ansi --no-root
+
+COPY . /app/
+
+ENV PYTHONPATH="/app/src/app/"
+
+EXPOSE 10000
+
+CMD ["uvicorn", "src.app.main:app", "--host", "0.0.0.0", "--port", "10000", "--reload"]
