@@ -2,12 +2,13 @@ from starlette.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
+from core.security.middleware import DeviceLoggingMiddleware
 from core.config import settings
-from api.api import api_router
 from core.db import (
     MongoDB,
     RedisClient
 )
+from api.api import api_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -27,6 +28,8 @@ app = FastAPI(
     openapi_url=f"{settings.API_V1_STR}/openapi.json",
     lifespan=lifespan
 )
+
+app.add_middleware(DeviceLoggingMiddleware)
 
 app.add_middleware(
     CORSMiddleware,
