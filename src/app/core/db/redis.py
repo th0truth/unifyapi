@@ -1,43 +1,45 @@
 import redis.asyncio as aioredis
 
-from core.config import settings
 from core.logger import logger
+from core.config import settings
 
-class Redis:
-    def __init__(
-            self,
-            db: str | int,
-            protocol: int | None = 2
-        ):
-        self.db = db
-        self.protocol = protocol
+class RedisClient:
+    client: aioredis.Redis = None
 
-    async def __aenter__(self):
+    @classmethod
+    async def connect(cls):
         """
         Create a connection to Redis cluster.
         """
         try:
-            self.client = aioredis.Redis(
+            cls.client = aioredis.Redis(
                 host=settings.REDIS_HOST,
                 port=settings.REDIS_PORT,
                 username=settings.REDIS_USERNAME,
                 password=settings.REDIS_PASSWORD,
-                protocol=self.protocol,
                 decode_responses=True,
-                db=self.db,
+                db=0
             )
-            alive = await self.client.ping()
+            alive = await cls.client.ping()
             if not alive:
                 logger.error(f"Couldn't connect to Redis: {settings.REDIS_HOST}:{settings.REDIS_PORT}.")
+                return None
+            
             logger.info("Redis cluster connected")
-            return self.client
-        except aioredis.ConnectionError:
-            logger.error("An error occured while connecting to Redis.")
+            return cls.client
+        except aioredis.ConnectionError as err:
+            logger.error(
+                {
+                    "msg": "An error occured while connecting to Redis.",
+                    "detail": err
+                })
+            return None
 
-    async def __aexit__(self, exc_type, exc, tb):
+    @classmethod
+    async def disconnect(cls):
         """
         Disconnect Redis cluster from API.
         """
-        if self.client:
-            await self.client.close()
+        if cls.client:
+            await cls.client.close()
             logger.info("Redis cluster disconnected")

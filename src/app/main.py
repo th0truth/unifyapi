@@ -4,12 +4,20 @@ from fastapi import FastAPI
 
 from core.config import settings
 from api.api import api_router
-from core.db import MongoDB
+from core.db import (
+    MongoDB,
+    RedisClient
+)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    async with MongoDB() as client:
-        yield client 
+    await RedisClient.connect()
+    await MongoDB.connect()
+    try:
+        yield
+    finally:
+        await MongoDB.disconnect()
+        await RedisClient.disconnect()
 
 app = FastAPI(
     title=settings.NAME,

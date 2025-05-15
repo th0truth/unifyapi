@@ -1,9 +1,9 @@
 from datetime import datetime, timedelta, timezone
+from redis.asyncio import Redis
 import jwt
 
-from core.config import settings
 from core.logger import logger
-from core.db import Redis
+from core.config import settings
 
 # https://www.iana.org/assignments/jwt/jwt.xhtml#claims
 
@@ -30,33 +30,43 @@ class OAuthJWTBearer:
         """
         try:
             return jwt.decode(jwt=token, key=settings.PUBLIC_KEY_PEM, algorithms=settings.JWT_ALGORITHM)
-        except jwt.DecodeError as err:
-            logger.error(err)
-     
+        except jwt.DecodeError:
+            return None
+
     @staticmethod
-    def refresh(payload: dict) -> str:
+    async def refresh(payload: dict) -> str:
         """
         Refreshes the claims of a JWT, updating expiry time.
         """
         payload.update(
-            {"exp": datetime.now(tz=timezone.utc) + timedelta(minutes=settings.JWT_REFRESH_MIN)})
+            {"exp": datetime.now(tz=timezone.utc) + timedelta(minutes=settings.JWT_EXPIRE_MIN)})
         return jwt.encode(payload=payload, key=settings.PRIVATE_KEY_PEM, algorithm=settings.JWT_ALGORITHM)
 
     @staticmethod
-    async def add_jti_to_blacklist(jti: str) -> bool:
+    async def add_jwt_to_blacklist(jti: str, exp: int, redis: Redis) -> bool:
         """
-        Adds `jti` to the blacklist. 
+        Adds `jwt` to the blacklist. 
         """
-        async with Redis(db=0) as client:
-            response = await client.setex(
-                name=jti, time=settings.JTI_EXPIRY_SEC, value="Revoked")
-            return response
-        
+        try:
+            now = int(datetime.now(tz=timezone.utc).timestamp())
+            ttl = exp - now
+            if ttl < 0:
+                logger.warning(f"Token with jti={jti} is already expired. Skipping blacklist.")
+                return False
+            
+            # store blacklist entry
+            await redis.setex(f"oauth:blacklist:{jti}", ttl, "Revoked")
+            return True
+        except Exception as err:
+            logger.error({
+                "msg": f"Failed to add token to blacklist.",
+                "detail": err
+            })
+            return False
+
     @staticmethod
-    async def is_jti_in_blacklist(jti: str) -> bool:
+    async def is_jwt_in_blacklist(jti: str, redis: Redis) -> bool:
         """
-        Checks if the `jti` is in the blacklist.
+        Checks if the `jwt` is in blacklist.
         """
-        async with Redis(db=0) as client:
-            response = await client.exists(jti)
-            return response
+        return await redis.exists(f"oauth:blacklist:{jti}")

@@ -19,13 +19,13 @@ from core.schemas.etc import (
     PasswordRecovery
 )
 
-from api.deps import get_current_user
+import api.dependencies as deps 
 import crud
 
 router = APIRouter(tags=["User"])
 
 @router.get("/me", response_model=UserPrivate)
-async def get_current_user(user: dict = Depends(get_current_user)):
+async def get_current_user(user: dict = Depends(deps.get_current_user)):
     """
     Read the user's private data.
     """
@@ -33,7 +33,7 @@ async def get_current_user(user: dict = Depends(get_current_user)):
 
 @router.patch("/update/email")
 async def add_user_email(
-        user: dict = Depends(get_current_user),
+        user: dict = Depends(deps.get_current_user),
         user_update: UserUpdate = Body()
     ):
     """
@@ -51,7 +51,7 @@ async def add_user_email(
 
 @router.patch("/update/password")
 async def update_password_me(
-        user: dict = Depends(get_current_user),
+        user: dict = Depends(deps.get_current_user),
         body: UpdatePassword = Body()
     ):
     """
@@ -80,7 +80,7 @@ async def password_recovery(body: PasswordRecovery = Body()):
     await crud.update_user(edbo_id=user.get("edbo_id"), data={"password": Hash.hash(plain=body.new_password)})
 
 @router.get("/disciplines")
-async def get_user_disciplines(user: dict = Depends(get_current_user)):
+async def get_user_disciplines(user: dict = Depends(deps.get_current_user)):
     """
     Read the user's disciplines.
     """

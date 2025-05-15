@@ -7,8 +7,8 @@ from motor.motor_asyncio import (
     AsyncIOMotorGridFSBucket
 )
 
-from core.config import settings
 from core.logger import logger
+from core.config import settings
 
 class MongoDB:
     """
@@ -111,7 +111,7 @@ class MongoDB:
         return AsyncIOMotorGridFSBucket(database=database, chunk_size_bytes=16)
 
     @classmethod
-    async def __aenter__(cls):
+    async def connect(cls):
         """Create a connection between API and MongoDB Cluster."""
         if not cls.client:
             try:
@@ -122,7 +122,7 @@ class MongoDB:
                 logger.error(err)
     
     @classmethod
-    async def __aexit__(cls, exc_type, exc_val, exc_tb):
+    async def disconnect(cls):
         """Disconnect MongoDB Cluster from API."""
         if cls.client:
             try:

@@ -4,7 +4,7 @@ from fastapi import (
     Body
 )
 
-from api.deps import get_current_user
+from api.dependencies import get_current_user
 
 from core.schemas.user import UserDB
 from core.schemas.teacher import (

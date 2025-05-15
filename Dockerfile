@@ -13,10 +13,11 @@ COPY ./pyproject.toml /app/
 RUN poetry config virtualenvs.create false \
     && poetry install --no-interaction --no-ansi --no-root
 
-COPY . /app/
+COPY src/ /app/     
+COPY .env /app/
 
-ENV PYTHONPATH="/app/src/app/"
+ENV PYTHONPATH="/app/app/"
 
 EXPOSE 10000
 
-CMD ["uvicorn", "src.app.main:app", "--host", "0.0.0.0", "--port", "10000", "--reload"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "10000", "--reload"]

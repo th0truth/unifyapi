@@ -8,7 +8,6 @@ from typing import (
 from core.config import settings
 
 from core.security.utils import Hash
- 
 from core.schemas.user import (
     UserCreate,
     UserDB,
@@ -19,22 +18,14 @@ from core.schemas.grade import GradeDB
 async def get_user_by_username(*, username: int | str) -> dict | None:
     """
     Find user by username. e.g `edbo_id` or `email` 
-    """ 
+    """
     collections = await UserDB.get_collections()
     for collection in collections:
         UserDB.COLLECTION_NAME = collection
         user = await UserDB.find_by(
             {"edbo_id": int(username)} if username.isdigit() else {"email": username})
-        if user:
-            break 
+        if user: break 
     return user
-
-async def get_user_fullname(*, user: dict) -> str: 
-    """
-    Return the full name of the user.
-    """
-    return "{} {} {}".format(
-        user.get("last_name"), user.get("first_name"), user.get("middle_name"))
 
 async def create_user(*, user: UserCreate) -> bool:
     """
@@ -104,7 +95,7 @@ async def update_user(*, edbo_id: int, data: dict):
 
 async def delete_user(*, user: dict):
     """
-    Delete user from the MongoDB collection by 'edbo_id'.
+    Delete user from the MongoDB collection by `edbo_id`.
     """
     if not user:
         raise HTTPException(
@@ -116,7 +107,7 @@ async def delete_user(*, user: dict):
         status_code=status.HTTP_200_OK,
         detail="The user account has been deleted")
 
-async def authenticate_user(*, username: str | int, plain_pwd: str) -> dict:
+async def authenticate_user(*, username: str | int, plain_pwd: str, exclude: List[str] | None = None) -> dict:
     """
     Authenticate user credentials.
     """
@@ -135,6 +126,9 @@ async def authenticate_user(*, username: str | int, plain_pwd: str) -> dict:
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid user credentials."
             )
+    if exclude:
+        for key in exclude:
+            user.pop(key)
     return user
 
 async def get_grades(*, edbo_id: int, group: str, **kwargs) -> dict:

@@ -18,7 +18,7 @@ class Settings(BaseSettings):
         extra="ignore",
     )
     
-    # API settings
+    # App settings
     
     NAME: str
     DESCRIPTION: str = ""
@@ -43,8 +43,6 @@ class Settings(BaseSettings):
 
     JWT_ALGORITHM: str = "RS256"
     JWT_EXPIRE_MIN: int | float
-    JWT_REFRESH_MIN: int | float
-    JTI_EXPIRY_SEC: int | float = 3600
 
     scopes: Dict[str, Any] = {
         "student": "",

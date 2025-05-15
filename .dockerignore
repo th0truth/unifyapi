@@ -4,3 +4,8 @@ app.egg-info
 .mypy_cache
 .coverage
 .venv
+.git
+venv
+.gitignore
+poetry.lock
+.env.example

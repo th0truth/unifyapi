@@ -10,7 +10,7 @@ from core.schemas.user import (
     User,
     ROLE
 )
-from api.deps import get_current_user
+from api.dependencies import get_current_user
 import crud
 
 router = APIRouter(tags=["Users"])

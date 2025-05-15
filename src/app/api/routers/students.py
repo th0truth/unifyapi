@@ -9,7 +9,6 @@ from fastapi import (
     Body
 )
 
-from api.deps import get_current_user
 from core.schemas.user import UserDB
 from core.schemas.group import GroupDB
 from core.schemas.student import (
@@ -22,6 +21,7 @@ from core.schemas.grade import (
     GradeDB
 )
 
+from api.dependencies import get_current_user
 import crud
 
 router = APIRouter(tags=["Students"])
