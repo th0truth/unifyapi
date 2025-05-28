@@ -19,28 +19,30 @@ class Settings(BaseSettings):
     )
     
     # App settings
-    
     NAME: str
     DESCRIPTION: str = ""
-    SUMMARY: str | None = None
+    SUMMARY: str = ""
     VERSION: str = "0.0.1"
     API_V1_STR: str = "/api/v1"
 
-    # Database (MongoDB) settings    
-    
-    DB_USERNAME: str
-    DB_PASSWORD: str
-    DB_HOSTNAME: str
+    # MongoDB settings    
+    MONGO_HOSTNAME: str
+    MONGO_USERNAME: str
+    MONGO_PASSWORD: str
+    MONGO_DATABASE: str
+    MONGO_MAX_POOL_SIZE: int = 100
+    MONGO_MIN_POOL_SIZE: int = 10
+    MONGO_CONNECT_TIMEOUT_MS: int = 10000
+    MONGO_SERVER_SELECTION_TIMEOUT_MS: int = 10000
+    MONGO_RETRY_WRITES: bool = True
 
     # Redis settings
-
     REDIS_HOST: str
     REDIS_PORT: int
     REDIS_USERNAME: str
     REDIS_PASSWORD: str
 
     # JWT settings
-
     JWT_ALGORITHM: str = "RS256"
     JWT_EXPIRE_MIN: int | float
 

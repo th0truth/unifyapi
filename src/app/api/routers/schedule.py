@@ -1,263 +1,159 @@
-from datetime import datetime
+from typing import Annotated, Optional, List
 from fastapi import (
     HTTPException,
     APIRouter,
-    UploadFile,
     status,
     Security,
     Depends,
-    Query,
-    Body
+    Path,
+    Body,
+    Query
 )
+from datetime import datetime
 import uuid
 
-from api.dependencies import get_current_user
-from core.schemas.user import (
-    UserDB,
-    ROLE
-)
-from core.schemas.teacher import Teacher
-from core.schemas.schedule import (
-    Schedule,
-    ScheduleCreate,
-    ScheduleDB
-)
+from core.db import MongoClient
 
+from core.schemas.student import StudentBase
+from core.schemas.teacher import TeacherBase
+from core.schemas.schedule import (
+    ScheduleBase,
+    ScheduleCreate
+)
+from api.dependencies import (
+    get_mongo_client,
+    get_current_user
+)
 import crud
 
 router = APIRouter(tags=["Schedule"])
 
-async def get_teacher_info(lesson: dict) -> dict:
-    UserDB.COLLECTION_NAME = "teachers"
-    edbo_id = lesson.pop("teacher_edbo")
-    user = await UserDB.find_by({"edbo_id": edbo_id})
-    teacher = Teacher(**user).model_dump()
-    return teacher
+async def get_user_schedule(
+        mongo: MongoClient,
+        *,
+        student: StudentBase,
+        schedule_list: list
+    ) -> dict:
 
-@router.get("/my", response_model=list[Schedule])
-async def read_my_schedule(user: dict = Depends(get_current_user)):
+    grade_db = mongo.get_database("grades")
+    grades_doc = await crud.get_grades(grade_db, edbo_id=student.edbo_id, group=student.group)
+    user_db = mongo.get_database("users")
+    collection = user_db.get_collection("teachers")
+    for lesson in schedule_list:
+        teacher = await collection.find_one({"edbo_id": lesson.pop("teacher_edbo")})
+        lesson.update(
+            {"teacher": TeacherBase(**teacher).model_dump(),
+             "grade": grades_doc.get(lesson["name"], {}).get(lesson["date"])}
+        )
+    return schedule_list
+
+@router.get("/my",
+    response_model=list[ScheduleBase],
+    response_model_exclude_none=True)
+async def read_my_schedule(
+        user: Annotated[dict, Security(get_current_user, scopes=["student", "teacher"])],
+        mongo: Annotated[MongoClient, Depends(get_mongo_client)]
+    ):
     """
     Return the schedule for the current user. 
     """
-    role: ROLE = user.get("role")
+    schedule_db = mongo.get_database("schedule")
+    role = user.get("role")
     match role:
         case "students":
-            ScheduleDB.COLLECTION_NAME = user.get("group")
-            schedule = await ScheduleDB.find_many({"group": user.get("group")})
-            grades = await crud.get_grades(edbo_id=user.get("edbo_id"), group=user.get("group"))
-            for lesson in schedule:
-                lesson.update(
-                    {"teacher": await get_teacher_info(lesson=lesson),
-                     "grade": grades.get(lesson["name"], {}).get(lesson["date"], None) if grades else None})
-        case _:
-            collections = await ScheduleDB.get_collections()
-            for collection in collections:
-                ScheduleDB.COLLECTION_NAME = collection
-                schedule = await ScheduleDB.find_many({"teacher_edbo": user.get("edbo_id")})
-                if schedule:
-                    break
-    if not schedule:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Your schedule not found."
-        )
-    return schedule
+            student = StudentBase(**user)
+            collection = schedule_db.get_collection(student.group)
+            schedule_list = await collection.find({"group": student.group}).to_list()
+            schedule = await get_user_schedule(mongo, student=student, schedule_list=schedule_list)
+            return schedule
+        case "teachers":
+            for name in await schedule_db.list_collection_names():
+                collection = schedule_db.get_collection(name) 
+                schedule = await collection.find({"teacher_edbo": user["edbo_id"]}).to_list()
+                if schedule: break
+            return schedule
 
-@router.get("/{group}", response_model=list[Schedule],
-            dependencies=[Security(get_current_user, scopes=["teacher", "admin"])])
+@router.get("/{group}",
+    response_model=List[ScheduleBase],
+    response_model_exclude_none=True,                
+    dependencies=[Security(get_current_user, scopes=["teacher", "admin"])])
 async def read_group_schedule(
-        group: str,
-        skip: int | None = None,
-        length: int | None = None,
+        group: Annotated[str, Path],
+        mongo: Annotated[MongoClient, Depends(get_mongo_client)]
     ):
     """
     Return the schedule for the given group. 
     """
-    ScheduleDB.COLLECTION_NAME = group
-    schedule = await ScheduleDB.find_many(skip=skip, length=length)
+    schedule_db = mongo.get_database("schedule")
+    collection = schedule_db.get_collection(group)
+    schedule = await collection.find().to_list()
     if not schedule:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Group schedule not found."
         )
-    for lesson in schedule:
-        lesson.update({"teacher": await get_teacher_info(lesson=lesson)})
     return schedule
 
-@router.get("/{group}/{id}", response_model=Schedule,
-            dependencies=[Security(get_current_user, scopes=["teacher", "admin"])])
+@router.get("/{group}/{id}",
+    response_model=ScheduleBase,
+    response_model_exclude_none=True,
+    dependencies=[Security(get_current_user, scopes=["teacher", "admin"])])
 async def read_schedule_by_id(
-        group: str,
-        id: str,
+        group: Annotated[str, Path],
+        id: Annotated[str, Path],
+        mongo: Annotated[MongoClient, Depends(get_mongo_client)]
     ):
     """
     Return the schedule for the given group with a unique id. 
     """
-    ScheduleDB.COLLECTION_NAME = group
-    lesson = await ScheduleDB.find_by({"lesson_id": id})
+    schedule_db = mongo.get_database("schedule")
+    collection = schedule_db.get_collection(group)
+    lesson = await collection.find_one({"lesson_id": id})
     if not lesson:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Lesson not found."
         )
-    await get_teacher_info(lesson=lesson)
     return lesson
 
 @router.post("/create")
 async def create_schedule(
-    body: ScheduleCreate = Body(),
-    file: UploadFile | None = None, # fix this issue
-    teacher_edbo: int | None = Query(None),
-    date: str | None = Query(None),                
-    user: dict = Security(
-        get_current_user, scopes=["teacher", "admin"]),
+    schedule_create: Annotated[ScheduleCreate, Body],
+    user: Annotated[dict, Security(get_current_user, scopes=["teacher"])],
+    mongo: Annotated[MongoClient, Depends(get_mongo_client)],
+    date: Annotated[Optional[str], Query] = None,
 ):
     """
     Create a schedule for the group.
     """
-    # search given group
-    groups = await ScheduleDB.get_collections()    
-    if body.group not in groups:
+    teacher = TeacherBase(**user)
+    group_db = mongo.get_database("groups")
+    for _name in await group_db.list_collection_names():
+        collection = group_db.get_collection(_name)
+        group = await collection.find_one({"group": schedule_create.group})
+        if group: break
+    if not group:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="The group not found."
         )
-    ScheduleDB.COLLECTION_NAME = body.group
+    if schedule_create.name not in teacher.disciplines:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have access to this discipline."
+        )
 
-    role: ROLE = user.get("role")
-    match role:
-        case "teachers":
-            if body.name not in user.get("disciplines"):
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="You don't have access to this discipline."
-                )
-        case "admins":
-            if not teacher_edbo:
-                raise HTTPException(
-                    status_code=status.HTTP_409_CONFLICT,
-                    detail="The `teacher_edbo` field must be filled in."
-                )
-            UserDB.COLLECTION_NAME = "teachers"
-            teacher = await UserDB.find_by({"edbo_id": teacher_edbo})
-            if not teacher:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="Teacher not found."
-                )
-            disciplines = teacher.get("disciplines")
-            if body.name not in disciplines:
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="This teacher don't have access to this discipine."
-                )
-
-    # add attachment to lesson
-    if file:
-        f_bytes = await file.read()
-        file_id = await ScheduleDB.upload_file(
-            file.filename, f_bytes, file.content_type)
-    
-    await ScheduleDB.create(
-        {"date": date if date else datetime.now().strftime("%d-%m-%Y"),
-        "teacher_edbo": teacher_edbo,
-        "lesson_id": str(uuid.uuid4()),
-        "file_id": file_id,
-            **body.model_dump()})
+    schedule_db = mongo.get_database("schedule")
+    collection = schedule_db.get_collection(schedule_create.group)
+    await collection.insert_one(
+        {
+            "lesson_id": str(uuid.uuid4()),
+            "teacher_edbo": teacher.edbo_id,
+            "date": date if date else datetime.now().strftime("%d-%m-%Y"),
+            **schedule_create.model_dump()
+        }
+    )
     raise HTTPException(
         status_code=status.HTTP_201_CREATED,
-        detail="The lesson has been created successfully."
+        detail="Lesson created successfully."
     )
-
-@router.post("/upload/file", deprecated=True, dependencies=[Depends(get_current_user)])
-async def create_upload_file(file: UploadFile):
-    """
-        Upload file for schedule.
-    """
-    f_bytes = await file.read() 
-    await ScheduleDB.upload_file(
-        file.filename, f_bytes, file.content_type)
-
-# @router.get("/download/{filename}")
-# async def download_file(filename: str):
-    # pass
-
-@router.delete("/delete/file", deprecated=True, dependencies=[Depends(get_current_user)])
-async def delete_file(filename: str = Body()):
-    """
-    Delete a file by `filename`.    
-    """
-    ScheduleDB.COLLECTION_NAME = "fs.files"
-    file = await ScheduleDB.find_by({"filename": filename})
-    if not file:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="File not found."
-        )
-    file_id = file.get("_id")
-    await ScheduleDB.delete_file(file_id=file_id)
-    raise HTTPException(
-        status_code=status.HTTP_200_OK,
-        detail="File has been deleted successfully."
-    )
-
-# @router.patch("/update")
-# async def update_schedule(
-#         group: str,
-#         date: str = Query(),
-#         body: dict = Body(),
-#         user: dict = Security(get_current_user, scopes=["teacher", "admin"])
-#     ):
-    
-#     groups = await ScheduleDB.get_collections()
-#     if group not in groups:
-#         raise exc.NOT_FOUND(
-#             detail="Group not found."
-#         )
-
-#     ScheduleDB.COLLECTION_NAME = group
-
-#     role: ROLE = user.get("role")
-#     match role:
-#         case "teachers":
-#             lesson = await ScheduleDB.find_by({"date": date})
-#             if not lesson:
-#                 raise exc.NOT_FOUND(
-#                     detail="Lesson not found for this date."
-#                 )
-#             await Schedule.
-
-    # role: ROLE = user.get("role")
-    # match role:
-    #     case "teachers":
-    #         lesson = await ScheduleDB.find_by({"date": date})
-    #         print(lesson)
-    #         if not lesson:
-    #             raise exc.NOT_FOUND(
-    #                 detail="Your lesson not found."
-    #             )
-    #         await ScheduleDB.update_one(
-    #             filter={""})
-
-    #             filter={""},
-    #             update=update
-    #         )
-    #         raise exc.OK(
-    #             detail="The user schedule has been updated.")
-
-    # ScheduleDB.COLLECTION_NAME = group
-    # await ScheduleDB.update_one(filter={"date": date}, update=update)
-# 
-# @router.patch("/update/{group}/all",
-            #   dependencies=[Security(get_current_user, scopes=["teacher", "admin"])])
-# async def update_entire_schedule(group: str, filter: dict, data: dict):
-    # """
-        # Update users data.
-    # """
-# 
-    # groups = await ScheduleDB.get_collections()
-    # if group not in groups:
-        # raise exc.NOT_FOUND(
-            # detail="The given group not found.")
-    # ScheduleDB.COLLECTION_NAME = group
-    # await ScheduleDB.update_many(filter=filter, data=data)

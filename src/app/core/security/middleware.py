@@ -5,7 +5,6 @@ from fastapi.responses import Response
 from fastapi import Request
 from starlette.types import ASGIApp
 import hashlib
-import requests
 import httpx
 import json
 
@@ -14,7 +13,6 @@ from core.db import RedisClient
 class DeviceLoggingMiddleware(BaseHTTPMiddleware):
     def __init__(self, app: ASGIApp):
         super().__init__(app)
-        self.http_client = httpx.AsyncClient(timeout=5.0)
 
     async def dispatch(self, request: Request, call_next) -> Response:
         # Extract info device

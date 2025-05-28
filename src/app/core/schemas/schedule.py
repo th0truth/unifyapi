@@ -1,8 +1,8 @@
 from pydantic import BaseModel
-from core.db.database import MongoDB
+from typing import Optional
 
-class Schedule(BaseModel):
-    teacher: dict | None = None
+class ScheduleBase(BaseModel):
+    teacher: Optional[dict] = None
     name: str
     lesson_id: str
     position: int
@@ -10,7 +10,7 @@ class Schedule(BaseModel):
     date: str
     topic: str
     homework: str
-    grade: int | None = None
+    grade: Optional[int] = None
 
 class ScheduleTeacher(BaseModel):
     edbo_id: int
@@ -27,6 +27,3 @@ class ScheduleCreate(BaseModel):
     classroom: int
     topic: str
     homework: str
-
-class ScheduleDB(MongoDB):
-    DATABASE_NAME = "schedule"

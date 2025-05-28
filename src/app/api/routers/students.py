@@ -1,170 +1,125 @@
-from datetime import datetime
-from typing import List
+from typing import Annotated, Optional, List
 from fastapi import (
     HTTPException,
     APIRouter,
     status,
     Security,
+    Depends,
     Query,
+    Path,
     Body
 )
 
-from core.schemas.user import UserDB
-from core.schemas.group import GroupDB
-from core.schemas.student import (
-    Student,
-    StudentCreate,
-)
-from core.schemas.grade import (
-    Grade,
-    SetGrade,
-    GradeDB
-)
+from core.db import MongoClient
 
-from api.dependencies import get_current_user
+from core.schemas.student import (
+    StudentBase,
+    StudentCreate
+)
+from core.schemas.grade import GradeBase
+from api.dependencies import (
+    get_mongo_client,
+    get_current_user
+)
 import crud
 
 router = APIRouter(tags=["Students"])
 
-UserDB.COLLECTION_NAME = "students"
-
 @router.post("/create",
     dependencies=[Security(get_current_user, scopes=["admin"])])
-async def create_student(student: StudentCreate = Body()):
+async def create_student(
+        student_create: Annotated[StudentCreate, Body],
+        mongo: Annotated[MongoClient, Depends(get_mongo_client)] 
+    ):
     """
     Create a student account.
     """
-    group = await GroupDB.find_by({"group": student.group})
+    group_db = mongo.get_database("groups")
+    collection = group_db.get_collection(student_create.degree)
+    group = await collection.find_one({"group": student_create.group})
     if not group:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="The student's group not found."
         )
-    return await crud.create_user(user=student)
+    user_db = mongo.get_database("users")
+    return await crud.create_user(user_db, user=student_create)
 
-@router.get("/all/{group}", response_model=List[Student],
+@router.post("/group/{name}/all", response_model=List[StudentBase],
     dependencies=[Security(get_current_user, scopes=["teacher", "admin"])])
 async def read_students(
-        group: str,
-        skip: int = 0,
-        length: int | None = None
-    ) -> List[Student]:
+        name: Annotated[str, Path],
+        mongo: Annotated[MongoClient, Depends(get_mongo_client)]
+    ) -> List[StudentBase]:
     """
     Return a list of all existing students from the given group.
     """
-    return await crud.read_users(role="students", filter="group", value=group, skip=skip, length=length)
+    user_db = mongo.get_database("users")
+    return await crud.read_users(user_db, role="students", filter="group", value=name)
 
 @router.post("/grades/my")
 async def get_current_student_grades(
-        user: dict = Security(get_current_user, scopes=["student"]),
-        date: str | None = None,
-        body: Grade = Body()
+        body: Annotated[GradeBase, Body],
+        student: Annotated[dict, Security(get_current_user, scopes=["student"])],
+        mongo: Annotated[MongoClient, Depends(get_mongo_client)]
     ):
     """
-    Fetch the current user's grades by `subject`.    
+    Fetch the current student grades by `subject`.    
     """
-    return await crud.get_grades(
-        edbo_id=user.get("edbo_id"),
-        group=user.get("group"),
-        subject=body.subject,
-        date=date
-    )
+    grade_db = mongo.get_database("grades")
+    return await crud.get_grades(grade_db, edbo_id=student["edbo_id"], group=student["group"], subject=body.subject, date=body.date)
 
 @router.get("/grades/my/all")
 async def get_current_student_all_grades(
-        user: dict = Security(get_current_user, scopes=["student"]),
-        date: str | None = None
+        student: Annotated[StudentBase, Security(get_current_user, scopes=["student"])],
+        mongo: Annotated[MongoClient, Depends(get_mongo_client)],
+        date: Annotated[Optional[str], Query] = None
     ):
     """
     Fetch all grades for the current user.
     """
-    return await crud.get_grades(
-        edbo_id=user.get("edbo_id"),
-        group=user.get("group"),
-        date=date
-    )
+    grade_db = mongo.get_database("grades")
+    return await crud.get_grades(grade_db, edbo_id=student["edbo_id"], group=student["group"], date=date)
 
 @router.post("/grades/{edbo_id}",
+    response_model_exclude_none = True,
     dependencies=[Security(get_current_user, scopes=["teacher", "admin"])])
 async def get_student_grades(
-        edbo_id: int,
-        date: str | None = Query(None),
-        body: Grade = Body() 
+        edbo_id: Annotated[int, Path],
+        body: Annotated[GradeBase, Body],
+        mongo: Annotated[MongoClient, Depends(get_mongo_client)],
     ):
     """
     Return the specified student's subject grades.
     """
-    student = await UserDB.find_by({"edbo_id": edbo_id})
+    user_db = mongo.get_database("users")
+    collection = user_db.get_collection("students")
+    student = StudentBase(**await collection.find_one({"edbo_id": edbo_id}))
     if not student:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Student not found."
         )
-    
-    return await crud.get_grades(
-        edbo_id=edbo_id,
-        group=student.get("group"),
-        subject=body.subject,
-        date=date
-    )
+    grade_db = mongo.get_database("grades")
+    return await crud.get_grades(grade_db, edbo_id=edbo_id, group=student.group, subject=body.subject, date=body.date)
 
 @router.get("/grades/{edbo_id}/all",
     dependencies=[Security(get_current_user, scopes=["teacher", "admin"])])
 async def get_student_all_grades(
-        edbo_id: int,
-        date: str | None = Query(None),
+        edbo_id: Annotated[int, Path],
+        mongo: Annotated[MongoClient, Depends(get_mongo_client)],
+        date: Annotated[Optional[str], Query] = None,
     ):
     """
     Return all subject grades. 
     """
-    student = await UserDB.find_by({"edbo_id": edbo_id})
+    user_db = mongo.get_database("users")
+    collection = user_db.get_collection("students")
+    student = StudentBase(**await collection.find_one({"edbo_id": edbo_id}))
     if not student:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Student not found."
         )
-
-    return await crud.get_grades(
-        edbo_id=edbo_id,
-        group=student.get("group"),
-        date=date
-    )
-
-
-@router.patch("/set-grade/{edbo_id}")
-async def set_grade(
-        edbo_id: int,
-        date: str | None = None,
-        body: SetGrade = Body(),
-        user: dict = Security(get_current_user, scopes=["teacher"]),
-    ):
-    """
-    Set given student grade.
-    """
-    if body.subject not in user.get("disciplines"):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You don't have access to this discipline."
-        )
-    
-    UserDB.COLLECTION_NAME = "students"
-    student = await UserDB.find_by({"edbo_id": edbo_id})
-    if not student:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Student not found."
-        )
-    
-    if not date:
-        date = datetime.now().strftime("%d-%m-%Y") 
-    
-    GradeDB.COLLECTION_NAME = student.get("group")
-    await GradeDB.update_one(
-        filter={"edbo_id": edbo_id},
-        update={
-            f"grades.{body.subject}.{date}": body.grade}
-    )
-    raise HTTPException(
-        status_code=status.HTTP_200_OK,
-        detail="Student grade successfully added."
-    )
+    grade_db = mongo.get_database("grades")
+    return await crud.get_grades(grade_db, edbo_id=edbo_id, group=student.group, date=date)

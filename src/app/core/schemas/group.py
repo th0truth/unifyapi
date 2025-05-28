@@ -1,19 +1,14 @@
 from pydantic import BaseModel
-from core.db.database import MongoDB
+from datetime import datetime
+from typing import Any
 
-from .user import DEGREE
-from .teacher import Teacher
-
-class Group(BaseModel):
+class GroupBase(BaseModel):
     degree: str
     course: int
     group: str
     specialty: str
-    # disciplines: dict | None = None
-    class_teacher: Teacher | None = None
+    disciplines: Any
+    class_teacher_edbo: int
 
-class GroupDelete(BaseModel):
-    group: str
-
-class GroupDB(MongoDB):
-    DATABASE_NAME = "groups"
+class GroupCreate(GroupBase):
+    date: datetime

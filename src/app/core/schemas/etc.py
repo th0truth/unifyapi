@@ -1,4 +1,7 @@
 from pydantic import BaseModel, Field
+from typing import Annotated
+
+PASSWORDstr = Annotated[str, Field(..., min_length=8, max_length=128)]
 
 class Token(BaseModel):
     access_token: str
@@ -9,9 +12,9 @@ class TokenData(BaseModel):
     scopes: list
 
 class UpdatePassword(BaseModel):
-    current_password: str = Field(..., min_length=8, max_length=128)
-    new_password: str = Field(..., min_length=8, max_length=128)
+    current_password:  PASSWORDstr
+    new_password: PASSWORDstr
 
 class PasswordRecovery(BaseModel):
     email: str
-    new_password: str
+    new_password: PASSWORDstr

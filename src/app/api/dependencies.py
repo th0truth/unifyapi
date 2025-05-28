@@ -9,13 +9,19 @@ import json
 
 from core.config import settings
 
-from core.db import RedisClient
 from core.security.jwt import OAuthJWTBearer
+from core.db import MongoClient, RedisClient
 from core.schemas.etc import TokenData
-from core.schemas.user import UserDB
 import crud
 
-async def get_redis() -> AsyncGenerator:
+async def get_mongo_client() -> AsyncGenerator[MongoClient]:
+    """Dependency to get MongoDB client."""
+    if not MongoClient._client:
+        await MongoClient.connect()
+    yield MongoClient._client
+
+async def get_redis_client() -> AsyncGenerator:
+    """Dependency to get Redis client."""
     if not RedisClient.client:
         await RedisClient.connect()
     yield RedisClient.client 
@@ -27,7 +33,8 @@ oauth2_scheme = OAuth2PasswordBearer(
 async def get_current_user(
     security_scopes: SecurityScopes,
     token: str = Depends(oauth2_scheme),
-    redis: Redis = Depends(get_redis)
+    mongo: MongoClient = Depends(get_mongo_client),
+    redis: Redis = Depends(get_redis_client)
 ) -> dict:
     payload = OAuthJWTBearer.decode(token=token)
     if not payload:
@@ -37,9 +44,10 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"}
         )
     username = payload.get("sub")
-    user = json.loads(await redis.get(f"oauth:token:{token}"))
+    user: dict = json.loads(await redis.get(f"oauth:token:{token}"))
     if not user:
-        UserDB.COLLECTION_NAME = payload.get("role")
+        user_db = mongo.get_database("users")
+        user_db.get_collection(name=payload["role"])
         user = await crud.get_user_by_username(username=username)
         if not user:
             raise HTTPException(
@@ -47,8 +55,7 @@ async def get_current_user(
                 detail="Couldn't validate user credentials.",
                 headers={"WWW-Authenticate": "Bearer"}
             )
-    scopes = user.get("scopes")
-    token_data = TokenData(edbo_id=user.get("edbo_id"), scopes=scopes)
+    token_data = TokenData(edbo_id=user["edbo_id"], scopes=user["scopes"])
     if security_scopes.scopes:
         for scope in token_data.scopes:
             if scope not in security_scopes.scopes:

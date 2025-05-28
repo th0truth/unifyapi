@@ -1,104 +1,113 @@
+from typing import Annotated
 from fastapi import (
     HTTPException,
     APIRouter,
     status,
+    Security,
     Depends,
-    Body,
+    Body
 )
+
+from core.db import MongoClient
+
 from core.security.utils import Hash
-from core.schemas.user import (
-    UserPrivate,
-    UserUpdate,
-    UserDB,
-    ROLE
-)
-from core.schemas.teacher import Teacher
-from core.schemas.group import GroupDB
+from core.schemas.user import UserUpdateEmail
+from core.schemas.teacher import TeacherBase
 from core.schemas.etc import (
     UpdatePassword,
     PasswordRecovery
 )
-
-import api.dependencies as deps 
+from api.dependencies import (
+    get_mongo_client,
+    get_current_user
+)
 import crud
 
 router = APIRouter(tags=["User"])
 
-@router.get("/me", response_model=UserPrivate)
-async def get_current_user(user: dict = Depends(deps.get_current_user)):
+@router.get("/me",
+    response_model_exclude={"password"},
+    response_model_exclude_none=True)
+async def get_active_user(
+        user: Annotated[dict, Depends(get_current_user)]
+    ):
     """
-    Read the user's private data.
+    Read the user's data.
     """
     return user
 
 @router.patch("/update/email")
 async def add_user_email(
-        user: dict = Depends(deps.get_current_user),
-        user_update: UserUpdate = Body()
+        user_update: Annotated[UserUpdateEmail, Body()],
+        user: Annotated[dict, Depends(get_current_user)],
+        mongo: Annotated[MongoClient, Depends(get_mongo_client)]
     ):
     """
     Add email to the user account.
     """
-    if await crud.get_user_by_username(username=user_update.email):
+    user_db = mongo.get_database("users")
+    if await crud.get_user_by_username(user_db, username=user_update.email):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="That email is already associated with another account.")
-    user = await crud.authenticate_user(username=user.get("edbo_id"), plain_pwd=user_update.password) 
-    await crud.update_user(
-        edbo_id=user.get("edbo_id"),
-        data={"email": user_update.email}
-    )
+    user = await crud.authenticate_user(user_db, username=user["edbo_id"], plain_pwd=user_update.password)
+    await crud.update_user(user_db, edbo_id=user["edbo_id"], data={"email": user_update.email})
 
 @router.patch("/update/password")
 async def update_password_me(
-        user: dict = Depends(deps.get_current_user),
-        body: UpdatePassword = Body()
+        body: Annotated[UpdatePassword, Body()],
+        user: Annotated[dict, Depends(get_current_user)],
+        mongo: Annotated[MongoClient, Depends(get_mongo_client)]
     ):
     """
     Update own passoword.
     """
-    user = await crud.authenticate_user(username=user.get("edbo_id"), plain_pwd=body.current_password)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect password"
-        )
-    await crud.update_user(
-        edbo_id=user.get("edbo_id"), data={"password": Hash.hash(plain=body.new_password)})
+    user_db = mongo.get_database("users")
+    user = await crud.authenticate_user(user_db, username=user["edbo_id"], plain_pwd=body.current_password)
+    await crud.update_user(user_db, edbo_id=user["edbo_id"], data={"password": Hash.hash(plain=body.new_password)})
 
 @router.patch("/password-recovery")
-async def password_recovery(body: PasswordRecovery = Body()):
+async def password_recovery(
+        body: PasswordRecovery = Body(),
+        mongo: MongoClient = Depends(get_mongo_client)
+    ):
     """
     Password recovery.
     """
-    user = await crud.get_user_by_username(username=body.email)
+    user_db = mongo.get_database("users")
+    user = await crud.get_user_by_username(user_db, username=body.email)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found."
+            detail="Couldn't find your account."
         )
-    await crud.update_user(edbo_id=user.get("edbo_id"), data={"password": Hash.hash(plain=body.new_password)})
+    await crud.update_user(user_db, edbo_id=user["edbo_id"], data={"password": Hash.hash(plain=body.new_password)})
 
 @router.get("/disciplines")
-async def get_user_disciplines(user: dict = Depends(deps.get_current_user)):
+async def get_user_disciplines(
+        user: Annotated[dict, Security(get_current_user, scopes=["student", "teacher"])],
+        mongo: Annotated[MongoClient, Depends(get_mongo_client)]
+    ):
     """
     Read the user's disciplines.
     """
-    role: ROLE = user.get("role")
+    disciplines = {}
+    group_db = mongo.get_database("groups")
+    role = user["role"]
     match role:
-        case "students":
-            disciplines = {}
-            GroupDB.COLLECTION_NAME = user.get("degree")
-            group = await GroupDB.find_by({"group": user.get("group")})
+        case "students":        
+            collection = group_db.get_collection(user["degree"])
+            group: dict = await collection.find_one({"group": user["group"]})
             if not group:
                 raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="Your group not found in the system."
-                )
-            for discipline, edbo_id in group.get("disciplines").items():
-                UserDB.COLLECTION_NAME = "teachers"
-                disciplines.update(
-                    {discipline: Teacher(**await UserDB.find_by({"edbo_id": edbo_id}))})
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Group not found"
+            )
+            user_db = mongo.get_database("users")
+            collection = user_db.get_collection("teachers")
+            for k, v in group.get("disciplines").items():
+                disciplines.update({k: TeacherBase(**await collection.find_one({"edbo_id": v}))})
+            return disciplines
         case "teachers":
-            disciplines = user.get("disciplines")
+            disciplines = user["disciplines"]
     return disciplines

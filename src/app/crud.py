@@ -1,62 +1,74 @@
+from pymongo.asynchronous.database import AsyncDatabase
 from fastapi import HTTPException, status
-from typing import (
-    List,
-    Dict,
-    Any
-)
+from typing import Optional, List, Dict, Any
 
 from core.config import settings
-
 from core.security.utils import Hash
 from core.schemas.user import (
+    UserBase,
     UserCreate,
-    UserDB,
-    ROLE
+    UserUpdate
 )
-from core.schemas.grade import GradeDB
 
-async def get_user_by_username(*, username: int | str) -> dict | None:
+async def get_user_by_username(
+        db: AsyncDatabase,
+        *,
+        username: int | str,
+    ) -> dict:
     """
-    Find user by username. e.g `edbo_id` or `email` 
+    Find user by `username`. 
     """
-    collections = await UserDB.get_collections()
-    for collection in collections:
-        UserDB.COLLECTION_NAME = collection
-        user = await UserDB.find_by(
-            {"edbo_id": int(username)} if username.isdigit() else {"email": username})
-        if user: break 
+    for name in await db.list_collection_names():
+        collection = db.get_collection(name)
+        user = await collection.find_one(
+            {"edbo_id": int(username)} if isinstance(username, int) or username.isdigit() else {"email": username}) 
+        if user: break
     return user
 
-async def create_user(*, user: UserCreate) -> bool:
+async def create_user(
+        db: AsyncDatabase,
+        *,
+        user: UserCreate
+    ) -> bool:
     """
     Create a new user in the MongoDB collection.
     """
-    if await UserDB.find_by({"edbo_id": user.edbo_id}):
+    
+    if await get_user_by_username(db, username=user.edbo_id):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="User already exits."
         )
-    UserDB.COLLECTION_NAME = user.role
+    collection = db.get_collection(user.role)
     user.password = Hash.hash(plain=user.password)
-    await UserDB.create(doc=user.model_dump())
+    await collection.insert_one(user.model_dump())
     raise HTTPException(
         status_code=status.HTTP_201_CREATED,
         detail="User created successfully."
     )
 
-async def read_users(*, role: ROLE, filter: str | None = None, value: Any, skip: int = 0, length: int | None = None) -> List[Dict[str, Any]]:
+async def read_users(
+        db: AsyncDatabase,
+        *,
+        role: str,
+        filter: Any,
+        value: Any,
+    ) -> List[UserBase]:
     """
-    Read all users from the MongoDB collection.
+    Read all users.
     """
-    UserDB.COLLECTION_NAME = role
-    return await UserDB.find_many(
-        filter=filter, value=value, skip=skip, length=length)
-
-async def read_user(*, edbo_id: int) -> Dict[str, Any]:
+    collection = db.get_collection(role)
+    return await collection.find({filter: value} if filter and value else {}).to_list()
+    
+async def read_user(
+        db: AsyncDatabase, 
+        *,
+        edbo_id: int
+    ) -> Dict[str, Any]:
     """
     Read user from the MongoDB collection.
     """
-    user = await get_user_by_username(username=edbo_id)
+    user = await get_user_by_username(db, username=edbo_id)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -64,63 +76,87 @@ async def read_user(*, edbo_id: int) -> Dict[str, Any]:
         )
     return user 
 
-async def update_all_users(*, collection: ROLE, filter: dict, update: dict):
+async def update_all_users(
+        db: AsyncDatabase,
+        *,
+        role: str,
+        update_doc: UserUpdate
+    ):
     """
     Update users data.
     """
-    UserDB.COLLECTION_NAME = collection
-    await UserDB.update_many(
-        filter=filter,
-        update=update)
+    collection = db.get_collection(role)
+    await collection.update_many({}, update={"$set": update_doc.model_dump()})
     raise HTTPException(
         status_code=status.HTTP_200_OK,
-        detail="User accounts has been updated.")
+        detail="User accounts has been updated."
+    )
 
-async def update_user(*, edbo_id: int, data: dict):
+async def update_user(
+        db: AsyncDatabase,
+        *,
+        edbo_id: int,
+        update_doc: UserUpdate
+    ):
     """
     Update user data.
     """
-    user = await get_user_by_username(username=edbo_id)
+    user = await get_user_by_username(db, username=edbo_id)
     if not user:
        raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found."
         ) 
-    await UserDB.update_one(
-        filter={"edbo_id": user.get("edbo_id")},
-        update=data)
+    collection = db.get_collection(user.get("role"))
+    await collection.update_one(
+        filter={"edbo_id": edbo_id},
+        update={"$set": update_doc.model_dump()}
+    )
     raise HTTPException(
         status_code=status.HTTP_200_OK,
-        detail="The user account has been updated.")
+        detail="The user account has been updated."
+    )
 
-async def delete_user(*, user: dict):
+async def delete_user(
+        db: AsyncDatabase,
+        *,
+        edbo_id: int
+    ):
     """
     Delete user from the MongoDB collection by `edbo_id`.
     """
+    user = await get_user_by_username(db, username=edbo_id)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found."
         )
-    await UserDB.delete_document_by({"edbo_id": user.get("edbo_id")})
+    collection = db.get_collection(user.get("role"))
+    d = await collection.delete_one({"edbo_id": edbo_id})
     raise HTTPException(
         status_code=status.HTTP_200_OK,
-        detail="The user account has been deleted")
+        detail="The user account has been deleted"
+    )
 
-async def authenticate_user(*, username: str | int, plain_pwd: str, exclude: List[str] | None = None) -> dict:
+async def authenticate_user(
+        db: AsyncDatabase,
+        *,
+        username: str | int,
+        plain_pwd: str,
+        exclude: Optional[list] = None 
+    ) -> dict:
     """
     Authenticate user credentials.
-    """
-    user = await get_user_by_username(username=username)
-    if not user or not Hash.verify(plain_pwd, user["password"]):
+    """ 
+    user = await get_user_by_username(db, username=username)
+    if not user or not Hash.verify(plain_pwd, user.get("password")):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Couldn't validate credentials",
             headers={"WWW-Authenticate": "Bearer"}
         )
-    # Check user scopes (privileges)
-    scopes = user.get("scopes")
-    for scope in scopes:
+    # Check user privileges
+    for scope in user.get("scopes"):
         if scope not in settings.scopes:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -128,24 +164,36 @@ async def authenticate_user(*, username: str | int, plain_pwd: str, exclude: Lis
             )
     if exclude:
         for key in exclude:
-            user.pop(key)
+            user.pop(key)        
     return user
 
-async def get_grades(*, edbo_id: int, group: str, **kwargs) -> dict:
+async def get_grades(
+        db: AsyncDatabase, 
+        *,
+        edbo_id: int,
+        group: str,
+        **kwargs
+    ) -> dict:
     """
     Get student subject grades.
     """
-    GradeDB.COLLECTION_NAME = group
-    grades: dict = await GradeDB.find_by({"edbo_id": edbo_id})
-    if grades:
-        disciplines: dict = grades.get("disciplines")  
-        subject, date = kwargs.get("subject"), kwargs.get("date")
-        if subject:
-            grades: dict = disciplines.get(subject, {})
-            if date:
-                grades = grades.get(date, None)
-        else:
-            grades = {}
-            for subject, value in disciplines.items():
-                grades.update({subject: value.get(date) if date else value})
-    return grades
+    collection = db.get_collection(group)
+    grades_doc: dict = await collection.find_one({"edbo_id": edbo_id})
+    if not grades_doc:
+        return None
+ 
+    disciplines: dict = grades_doc.get("disciplines", {})
+    subject = kwargs.get("subject")
+    date = kwargs.get("date")
+
+    if subject and date:
+        return disciplines.get(subject, {}).get(date)
+
+    if subject:
+        return disciplines.get(subject, {})
+    
+    result = {}
+    for subject, records in disciplines.items():
+        result[subject] = records.get(date) if date else records
+
+    return result

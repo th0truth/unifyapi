@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from core.security.middleware import DeviceLoggingMiddleware
 from core.config import settings
 from core.db import (
-    MongoDB,
+    MongoClient,
     RedisClient
 )
 from api.api import api_router
@@ -13,11 +13,11 @@ from api.api import api_router
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await RedisClient.connect()
-    await MongoDB.connect()
+    await MongoClient.connect()
     try:
         yield
     finally:
-        await MongoDB.disconnect()
+        await MongoClient.close()
         await RedisClient.disconnect()
 
 app = FastAPI(

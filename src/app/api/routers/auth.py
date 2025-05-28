@@ -9,11 +9,17 @@ from fastapi import (
 from redis.asyncio import Redis
 import json
 
+from core.db import MongoClient
+
 from core.logger import logger
 from core.config import settings
 from core.schemas.etc import Token
 from core.security.jwt import OAuthJWTBearer
-from api.dependencies import get_current_user, get_redis
+from api.dependencies import (
+    get_mongo_client,
+    get_redis_client,
+    get_current_user
+)
 import crud
 
 router = APIRouter(tags=["Authentication"])
@@ -21,7 +27,8 @@ router = APIRouter(tags=["Authentication"])
 @router.post("/login", response_model=Token)
 async def login_via_credentials(
         form_data: OAuth2PasswordRequestForm = Depends(),
-        redis: Redis = Depends(get_redis) 
+        mongo: MongoClient = Depends(get_mongo_client),
+        redis: Redis = Depends(get_redis_client) 
     ):
     """
     Log in using user credentials.
@@ -29,22 +36,21 @@ async def login_via_credentials(
     access_token = await redis.get(f"oauth:user:{form_data.username}")
     if access_token:
         return Token(access_token=access_token) 
-    
-    user = await crud.authenticate_user(username=form_data.username, plain_pwd=form_data.password, exclude=["_id", "password"])
+    user_db = mongo.get_database("users")
+    user = await crud.authenticate_user(user_db, username=form_data.username, plain_pwd=form_data.password, exclude=["_id", "password"])
     access_token = OAuthJWTBearer.encode(
         payload={"sub": str(user.get("edbo_id")), "role": user.get("role"), "scope": form_data.scopes or user.get("scopes")})
     try:
         await redis.setex(f"oauth:token:{access_token}", settings.JWT_EXPIRE_MIN * 60, json.dumps(user, default=str))
         await redis.setex(f"oauth:user:{form_data.username}", settings.JWT_EXPIRE_MIN * 60, access_token)
     except Exception as err:
-        logger.error(
-            {"msg": "Failed adding `token` and `user` to Redis.", "detail": err})
+        logger.error({"msg": "Failed adding `token` and `user` to Redis.", "detail": err})
     return Token(access_token=access_token)
 
 @router.post("/token", response_model=Token)
 async def auth_token(
         token: Token = Header(alias="Authorization"),
-        redis: Redis = Depends(get_redis)
+        redis: Redis = Depends(get_redis_client)
     ):
     """
     Log in using an access token.

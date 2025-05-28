@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta, timezone
 from redis.asyncio import Redis
+from typing import Optional
 import jwt
 
 from core.logger import logger
@@ -24,7 +25,7 @@ class OAuthJWTBearer:
         return jwt.encode(payload=payload, key=settings.PRIVATE_KEY_PEM, algorithm=settings.JWT_ALGORITHM)
     
     @staticmethod
-    def decode(token: str) -> dict | None:
+    def decode(token: str) -> Optional[str]:
         """
         Decodes a JWT, returning the payload.
         """

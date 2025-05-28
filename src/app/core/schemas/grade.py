@@ -1,13 +1,9 @@
 from pydantic import BaseModel
+from typing import Optional
 
-from core.db.database import MongoDB 
-
-class Grade(BaseModel):
+class GradeBase(BaseModel):
     subject: str
+    date: Optional[str] = None
 
-class SetGrade(BaseModel):
-    subject: str
+class SetGrade(GradeBase):
     grade: int
-
-class GradeDB(MongoDB):
-    DATABASE_NAME = "grades"

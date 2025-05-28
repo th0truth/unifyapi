@@ -4,7 +4,7 @@ from core.logger import logger
 from core.config import settings
 
 class RedisClient:
-    client: aioredis.Redis = None
+    client: aioredis.Redis | None = None
 
     @classmethod
     async def connect(cls):

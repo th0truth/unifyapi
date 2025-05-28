@@ -1,14 +1,14 @@
-from pydantic import BaseModel, HttpUrl, Field
-from .user import User, UserCreate
+from datetime import datetime
+from pydantic import Field
 
-class Teacher(User):
+from .user import UserBase
+from .etc import PASSWORDstr
+
+class TeacherBase(UserBase):
     disciplines: list
     specialities: list
 
-class TeacherCreate(UserCreate):
+class TeacherCreate(TeacherBase):
     role: str = "teachers"
-    disciplines: list
-    specialities: list
-
-class TeacherCount(BaseModel):
-    specialities: list
+    acc_date: datetime
+    password: PASSWORDstr
