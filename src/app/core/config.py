@@ -41,6 +41,7 @@ class Settings(BaseSettings):
     REDIS_PORT: int
     REDIS_USERNAME: str
     REDIS_PASSWORD: str
+    REDIS_DB: int = 0
 
     # JWT settings
     JWT_ALGORITHM: str = "RS256"

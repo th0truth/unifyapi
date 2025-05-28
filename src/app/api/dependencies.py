@@ -14,17 +14,17 @@ from core.db import MongoClient, RedisClient
 from core.schemas.etc import TokenData
 import crud
 
-async def get_mongo_client() -> AsyncGenerator[MongoClient]:
+async def get_mongo_client() -> AsyncGenerator[MongoClient, None]:
     """Dependency to get MongoDB client."""
     if not MongoClient._client:
         await MongoClient.connect()
     yield MongoClient._client
 
-async def get_redis_client() -> AsyncGenerator:
+async def get_redis_client() -> AsyncGenerator[RedisClient, None]:
     """Dependency to get Redis client."""
-    if not RedisClient.client:
+    if not RedisClient._client:
         await RedisClient.connect()
-    yield RedisClient.client 
+    yield RedisClient._client
 
 oauth2_scheme = OAuth2PasswordBearer(
     tokenUrl=f"{settings.API_V1_STR}/auth/login",

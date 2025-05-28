@@ -5,7 +5,6 @@ from fastapi.responses import Response
 from fastapi import Request
 from starlette.types import ASGIApp
 import hashlib
-import httpx
 import json
 
 from core.db import RedisClient
@@ -35,13 +34,13 @@ class DeviceLoggingMiddleware(BaseHTTPMiddleware):
         }
 
         # Store in Redis
-        await RedisClient.client.setex(f"logs:{device_id}:{timestamp.strftime("%Y-%m-%d %H.%M.%S")}", 3600, json.dumps(device_data))
+        await RedisClient._client.setex(f"logs:{device_id}:{timestamp.strftime('%Y-%m-%d %H.%M.%S')}", 3600, json.dumps(device_data))
 
         # Rate limiting
         rate_limit_key = f"ratelimit:{device_id}"
-        count = await RedisClient.client.incr(rate_limit_key)
+        count = await RedisClient._client.incr(rate_limit_key)
         if count:
-            await RedisClient.client.expire(rate_limit_key, 60)
+            await RedisClient._client.expire(rate_limit_key, 60)
         if count > 100:
             raise HTTPException(
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
