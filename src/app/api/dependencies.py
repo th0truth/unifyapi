@@ -1,9 +1,9 @@
+from typing import Annotated, AsyncGenerator
 from fastapi import Depends, HTTPException, status
 from fastapi.security import (
     OAuth2PasswordBearer,
     SecurityScopes
 )
-from typing import AsyncGenerator
 from redis.asyncio import Redis
 import json
 
@@ -20,7 +20,7 @@ async def get_mongo_client() -> AsyncGenerator[MongoClient, None]:
         await MongoClient.connect()
     yield MongoClient._client
 
-async def get_redis_client() -> AsyncGenerator[RedisClient, None]:
+async def get_redis_client() -> AsyncGenerator[Redis, None]:
     """Dependency to get Redis client."""
     if not RedisClient._client:
         await RedisClient.connect()
@@ -32,11 +32,11 @@ oauth2_scheme = OAuth2PasswordBearer(
 
 async def get_current_user(
     security_scopes: SecurityScopes,
-    token: str = Depends(oauth2_scheme),
-    mongo: MongoClient = Depends(get_mongo_client),
-    redis: Redis = Depends(get_redis_client)
+    token: Annotated[str, Depends(oauth2_scheme)],
+    mongo: Annotated[MongoClient, Depends(get_mongo_client)],
+    redis: Annotated[Redis, Depends(get_redis_client)]
 ) -> dict:
-    payload = OAuthJWTBearer.decode(token=token)
+    payload: dict = OAuthJWTBearer.decode(token=token)
     if not payload:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -61,5 +61,6 @@ async def get_current_user(
             if scope not in security_scopes.scopes:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
-                    detail="Not enough permissions")
+                    detail="Not enough permissions"
+                )
     return user

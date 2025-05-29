@@ -1,5 +1,5 @@
-import redis.asyncio as aioredis
 from typing import Optional
+import redis.asyncio as aioredis
 
 from core.logger import logger
 from core.config import settings

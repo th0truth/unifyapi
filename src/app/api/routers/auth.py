@@ -1,3 +1,4 @@
+from typing import Annotated
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi import (
     HTTPException,
@@ -6,9 +7,9 @@ from fastapi import (
     Depends,
     Header,
 )
-from redis.asyncio import Redis
 import json
 
+from redis.asyncio import Redis
 from core.db import MongoClient
 
 from core.logger import logger
@@ -26,9 +27,9 @@ router = APIRouter(tags=["Authentication"])
 
 @router.post("/login", response_model=Token)
 async def login_via_credentials(
-        form_data: OAuth2PasswordRequestForm = Depends(),
-        mongo: MongoClient = Depends(get_mongo_client),
-        redis: Redis = Depends(get_redis_client) 
+        form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
+        mongo: Annotated[MongoClient, Depends(get_mongo_client)],
+        redis: Annotated[Redis, Depends(get_redis_client)] 
     ):
     """
     Log in using user credentials.
@@ -49,8 +50,8 @@ async def login_via_credentials(
 
 @router.post("/token", response_model=Token)
 async def auth_token(
-        token: Token = Header(alias="Authorization"),
-        redis: Redis = Depends(get_redis_client)
+        token: Annotated[Token, Header(alias="Authorization")],
+        redis: Annotated[Redis, Depends(get_redis_client)]
     ):
     """
     Log in using an access token.
@@ -91,7 +92,9 @@ async def auth_token(
     return Token(access_token=refresh_token)
 
 @router.post("/logout", dependencies=[Depends(get_current_user)])
-async def logout(token: Token = Header()):
+async def logout(
+        token: Annotated[Token, Header()]
+    ):
     """
     Log out from user account.
     """
