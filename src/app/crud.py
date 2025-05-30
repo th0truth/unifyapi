@@ -7,7 +7,6 @@ from core.security.utils import Hash
 from core.schemas.user import (
     UserBase,
     UserCreate,
-    UserUpdate
 )
 
 async def get_user_by_username(
@@ -80,13 +79,13 @@ async def update_all_users(
         db: AsyncDatabase,
         *,
         role: str,
-        update_doc: UserUpdate
+        update_doc: dict
     ):
     """
     Update users data.
     """
     collection = db.get_collection(role)
-    await collection.update_many({}, update={"$set": update_doc.model_dump()})
+    await collection.update_many({}, update={"$set": update_doc})
     raise HTTPException(
         status_code=status.HTTP_200_OK,
         detail="User accounts has been updated."
@@ -96,7 +95,7 @@ async def update_user(
         db: AsyncDatabase,
         *,
         edbo_id: int,
-        update_doc: UserUpdate
+        update_doc: dict
     ):
     """
     Update user data.
@@ -110,7 +109,7 @@ async def update_user(
     collection = db.get_collection(user.get("role"))
     await collection.update_one(
         filter={"edbo_id": edbo_id},
-        update={"$set": update_doc.model_dump()}
+        update={"$set": update_doc}
     )
     raise HTTPException(
         status_code=status.HTTP_200_OK,

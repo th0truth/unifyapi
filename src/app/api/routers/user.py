@@ -51,7 +51,7 @@ async def add_user_email(
             status_code=status.HTTP_409_CONFLICT,
             detail="That email is already associated with another account.")
     user = await crud.authenticate_user(user_db, username=user["edbo_id"], plain_pwd=user_update.password)
-    await crud.update_user(user_db, edbo_id=user["edbo_id"], data={"email": user_update.email})
+    await crud.update_user(user_db, edbo_id=user["edbo_id"], update_doc={"email": user_update.email})
 
 @router.patch("/update/password")
 async def update_password_me(
@@ -64,7 +64,7 @@ async def update_password_me(
     """
     user_db = mongo.get_database("users")
     user = await crud.authenticate_user(user_db, username=user["edbo_id"], plain_pwd=body.current_password)
-    await crud.update_user(user_db, edbo_id=user["edbo_id"], data={"password": Hash.hash(plain=body.new_password)})
+    await crud.update_user(user_db, edbo_id=user["edbo_id"], update_doc={"password": Hash.hash(plain=body.new_password)})
 
 @router.patch("/password-recovery")
 async def password_recovery(
@@ -81,7 +81,7 @@ async def password_recovery(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Couldn't find your account."
         )
-    await crud.update_user(user_db, edbo_id=user["edbo_id"], data={"password": Hash.hash(plain=body.new_password)})
+    await crud.update_user(user_db, edbo_id=user["edbo_id"], update_doc={"password": Hash.hash(plain=body.new_password)})
 
 @router.get("/disciplines")
 async def get_user_disciplines(
