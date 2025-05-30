@@ -1,16 +1,15 @@
-from fastapi import FastAPI
-from httpx import AsyncClient
-import pytest
+from httpx import ASGITransport, AsyncClient
+from typing import AsyncGenerator
+import pytest_asyncio 
 
 from app.main import app
-# @pytest.fixture(scope="function")
-# def test_client(db_session):
-#     def override_get_db():
-#         try:
-#             yield db_session
-#         finally:
-#             db_session.close()
 
-#     app.dependency_overrides[get_db] = override_get_db
-#         yield ac
-#     app.dependency_overrides.clear()
+@pytest_asyncio.fixture(scope="module")
+async def test_async_client() -> AsyncGenerator[AsyncClient, None]:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as async_client:
+        yield async_client
+
+# @pytest_asyncio.fixture(scope="module")
+# async def test_get_current_user()

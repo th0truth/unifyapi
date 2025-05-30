@@ -6,7 +6,7 @@ authors = [
     {name = "the truth"}
 ]
 license = {text = "MIT"}
-requires-python = ">=3.11"
+requires-python = ">=3.11,<4.0"
 dependencies = [
     "uvicorn (>=0.34.0,<0.35.0)",
     "fastapi[standard] (>=0.115.12,<0.116.0)",
@@ -22,6 +22,7 @@ dependencies = [
     "pytest-asyncio (>=0.26.0,<0.27.0)",
     "httpx (>=0.28.1,<0.29.0)",
     "pymongo (>=4.13.0,<5.0.0)",
+    "mongomock (>=4.3.0,<5.0.0)",
 ]
 
 
