@@ -2,7 +2,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.backends import default_backend
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 import secrets
 
 private_key = rsa.generate_private_key(
@@ -35,6 +35,8 @@ class Settings(BaseSettings):
     MONGO_CONNECT_TIMEOUT_MS: int = 10000
     MONGO_SERVER_SELECTION_TIMEOUT_MS: int = 10000
     MONGO_RETRY_WRITES: bool = True
+    
+    MONGO_TEST_HOSTNAME: Optional[str]
 
     # Redis settings
     REDIS_HOST: str
