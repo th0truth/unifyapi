@@ -4,7 +4,15 @@
 
 ## Features
 
-- Authentication / authorization based on OAuth2.0  
+- High-performace Python web framework for building APIs with automatic OpenAPI & Swagger & ReDoc docs. 
+- Fully async using `async def` path operation, enabling non-blocking oprations.
+- Fast and robust data validation and serialization using `Pydantic` library. 
+- NoSQL databases:
+    - Integrated with `MongoDB` using an async `pymotor` (related on 4.13 version) for efficient data access.
+    - Supports `Redis` caching using async `aioredis`. 
+- Seamless containerzation using `Docker` / `Docker compose`.
+- Test suite using `pytest` framework.
+- Environment configuration.
 
 # Requirements
 
@@ -13,8 +21,23 @@
 
 # Installation
 
-Clone the repo
+The current recommend way to install unifyapi is from source.
 
-``
-https://github.com/qthetruth/unifyapi.git
-``
+## From source
+```bash
+git clone https://github.com/th0truth/unifyapi.git
+cd unifyapi
+
+python -m venv venv
+source venv/bin/activate
+
+pip install poetry
+
+poetry install
+```
+
+# Usage
+
+```bash
+docker compose up
+```

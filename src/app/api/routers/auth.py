@@ -42,8 +42,8 @@ async def login_via_credentials(
     access_token = OAuthJWTBearer.encode(
         payload={"sub": str(user.get("edbo_id")), "role": user.get("role"), "scope": form_data.scopes or user.get("scopes")})
     try:
-        await redis.setex(f"oauth:token:{access_token}", settings.JWT_EXPIRE_MIN * 60, json.dumps(user, default=str))
-        await redis.setex(f"oauth:user:{form_data.username}", settings.JWT_EXPIRE_MIN * 60, access_token)
+        await redis.setex(f"session:token:{access_token}", settings.JWT_EXPIRE_MIN * 60, json.dumps(user, default=str))
+        await redis.setex(f"session:user:{form_data.username}", settings.JWT_EXPIRE_MIN * 60, access_token)
     except Exception as err:
         logger.error({"msg": "Failed adding `token` and `user` to Redis.", "detail": err})
     return Token(access_token=access_token)
