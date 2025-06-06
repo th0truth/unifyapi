@@ -9,7 +9,7 @@
 - Fast and robust data validation and serialization using `Pydantic` library. 
 - Secure authentification using OAuth2.0 standard with username / password and access token (JWT).
 - NoSQL databases:
-    - Integrated with `MongoDB` using an async `pymotor` (related on 4.13 version) for efficient data access.
+    - Integrated with `MongoDB` using an async `pymotor` (related to 4.13 version) for efficient data access.
     - Supports `Redis` caching using async `aioredis`. 
 - Seamless containerzation using `Docker` / `Docker compose`.
 - Test suite using `pytest` framework.
