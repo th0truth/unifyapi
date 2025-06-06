@@ -7,6 +7,7 @@
 - High-performace Python web framework for building APIs with automatic OpenAPI & Swagger & ReDoc docs. 
 - Fully async using `async def` path operation, enabling non-blocking oprations.
 - Fast and robust data validation and serialization using `Pydantic` library. 
+- Secure authentification using OAuth2.0 standard with username / password and access token (JWT).
 - NoSQL databases:
     - Integrated with `MongoDB` using an async `pymotor` (related on 4.13 version) for efficient data access.
     - Supports `Redis` caching using async `aioredis`. 
