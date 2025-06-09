@@ -26,8 +26,6 @@ git clone https://github.com/th0truth/unifyapi.git
 cd unifyapi
 ```
 
-# **Usage**
-
 ## Requirements
 
 - [Python +3.11](https://www.python.org/downloads/)
@@ -35,9 +33,18 @@ cd unifyapi
 
 # Configure
 
-You must update configs in the `.env` files to customize your configuration.
+You must update configs in the `.env` files to customize your configuration. 
 
-## Windows
+# **How to use**
+
+```bash
+bash scripts/build.sh
+
+bash scripts/run.sh
+```
+
+or
+
 ```bash
 python -m venv venv
 source Scripts/venv/activate
@@ -47,11 +54,4 @@ pip install poetry
 poetry install --no-root
 
 docker compose up
-```
-
-## MacOS / Linux
-```bash
-bash scripts/build.sh
-
-bash scripts/run.sh
 ```
