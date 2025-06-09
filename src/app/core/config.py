@@ -36,8 +36,6 @@ class Settings(BaseSettings):
     MONGO_SERVER_SELECTION_TIMEOUT_MS: int = 10000
     MONGO_RETRY_WRITES: bool = True
     
-    MONGO_TEST_HOSTNAME: Optional[str]
-
     # Redis settings
     REDIS_HOST: str
     REDIS_PORT: int
