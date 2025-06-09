@@ -29,7 +29,7 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-app.add_middleware(DeviceLoggingMiddleware)
+# app.add_middleware(DeviceLoggingMiddleware)
 
 app.add_middleware(
     CORSMiddleware,
