@@ -56,7 +56,7 @@ class OAuthJWTBearer:
                 return False
             
             # store blacklist entry
-            await redis.setex(f"oauth:blacklist:{jti}", ttl, "Revoked")
+            await redis.setex(f"session:blacklist:{jti}", ttl, "Revoked")
             return True
         except Exception as err:
             logger.error({
@@ -70,4 +70,4 @@ class OAuthJWTBearer:
         """
         Checks if the `jwt` is in blacklist.
         """
-        return await redis.exists(f"oauth:blacklist:{jti}")
+        return await redis.exists(f"session:blacklist:{jti}")

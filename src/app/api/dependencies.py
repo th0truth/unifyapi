@@ -44,7 +44,7 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"}
         )
     username = payload.get("sub")
-    user: dict = json.loads(await redis.get(f"oauth:token:{token}"))
+    user: dict = json.loads(await redis.get(f"session:token:{token}"))
     if not user:
         user_db = mongo.get_database("users")
         user_db.get_collection(name=payload["role"])

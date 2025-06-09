@@ -34,7 +34,7 @@ async def login_via_credentials(
     """
     Log in using user credentials.
     """
-    access_token = await redis.get(f"oauth:user:{form_data.username}")
+    access_token = await redis.get(f"session:user:{form_data.username}")
     if access_token:
         return Token(access_token=access_token) 
     user_db = mongo.get_database("users")
@@ -69,7 +69,7 @@ async def auth_token(
             detail="Invalid token."
         )
     
-    user = await redis.get(f"oauth:token:{token.access_token}")
+    user = await redis.get(f"session:token:{token.access_token}")
     if not user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -84,11 +84,11 @@ async def auth_token(
     refresh_token = await OAuthJWTBearer.refresh(payload)
     username = payload.get("sub") 
     try:
-        await redis.delete(f"oauth:token:{token.access_token}")
-        await redis.delete(f"oauth:user:{username}")
+        await redis.delete(f"session:token:{token.access_token}")
+        await redis.delete(f"session:user:{username}")
     finally:
-        await redis.setex(f"oauth:token:{refresh_token}", settings.JWT_EXPIRE_MIN * 60, user)
-        await redis.setex(f"oauth:user:{username}", settings.JWT_EXPIRE_MIN * 60, refresh_token)
+        await redis.setex(f"session:token:{refresh_token}", settings.JWT_EXPIRE_MIN * 60, user)
+        await redis.setex(f"session:user:{username}", settings.JWT_EXPIRE_MIN * 60, refresh_token)
     return Token(access_token=refresh_token)
 
 @router.post("/logout", dependencies=[Depends(get_current_user)])
