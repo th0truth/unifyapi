@@ -178,21 +178,12 @@ async def get_grades(
     """
     collection = db.get_collection(group)
     grades_doc: dict = await collection.find_one({"edbo_id": edbo_id})
-    if not grades_doc:
-        return None
- 
+    if not grades_doc: return {}
     disciplines: dict = grades_doc.get("disciplines", {})
-    subject = kwargs.get("subject")
-    date = kwargs.get("date")
-
-    if subject and date:
-        return disciplines.get(subject, {}).get(date)
-
-    if subject:
-        return disciplines.get(subject, {})
-    
+    subject, date = kwargs.get("subject"), kwargs.get("date")
+    if subject and date: return disciplines.get(subject, {}).get(date)
+    if subject: return disciplines.get(subject, {})
     result = {}
     for subject, records in disciplines.items():
         result[subject] = records.get(date) if date else records
-
     return result
