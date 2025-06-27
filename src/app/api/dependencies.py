@@ -36,7 +36,7 @@ async def get_current_user(
     mongo: Annotated[MongoClient, Depends(get_mongo_client)],
     redis: Annotated[Redis, Depends(get_redis_client)]
 ) -> dict:
-    payload: dict = OAuthJWTBearer.decode(token=token)
+    payload = OAuthJWTBearer.decode(token=token)
     if not payload:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

@@ -25,7 +25,7 @@ class OAuthJWTBearer:
         return jwt.encode(payload=payload, key=settings.PRIVATE_KEY_PEM, algorithm=settings.JWT_ALGORITHM)
     
     @staticmethod
-    def decode(token: str) -> Optional[str]:
+    def decode(token: str) -> Optional[dict]:
         """
         Decodes a JWT, returning the payload.
         """
@@ -44,9 +44,9 @@ class OAuthJWTBearer:
         return jwt.encode(payload=payload, key=settings.PRIVATE_KEY_PEM, algorithm=settings.JWT_ALGORITHM)
 
     @staticmethod
-    async def add_jwt_to_blacklist(jti: str, exp: int, redis: Redis) -> bool:
+    async def add_jwt_to_blacklist(redis: Redis, *, jti: str, exp: int) -> bool:
         """
-        Adds `jwt` to the blacklist. 
+        Adds `jti` to the blacklist.
         """
         try:
             now = int(datetime.now(tz=timezone.utc).timestamp())
@@ -66,7 +66,7 @@ class OAuthJWTBearer:
             return False
 
     @staticmethod
-    async def is_jwt_in_blacklist(jti: str, redis: Redis) -> bool:
+    async def is_jwt_in_blacklist(redis: Redis, *, jti: str) -> bool:
         """
         Checks if the `jwt` is in blacklist.
         """

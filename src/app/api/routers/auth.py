@@ -26,7 +26,7 @@ import crud
 router = APIRouter(tags=["Authentication"])
 
 @router.post("/login", response_model=TokenPayload)
-async def login_via_credentials(
+async def login(
         form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
         mongo: Annotated[MongoClient, Depends(get_mongo_client)],
         redis: Annotated[Redis, Depends(get_redis_client)] 
@@ -36,7 +36,7 @@ async def login_via_credentials(
     """
     access_token = await redis.get(f"session:user:{form_data.username}")
     if access_token:
-        payload: dict = OAuthJWTBearer.decode(token=access_token)
+        payload = OAuthJWTBearer.decode(token=access_token)
         return TokenPayload(access_token=access_token, role=payload.get("role"))
     user_db = mongo.get_database("users")
     user = await crud.authenticate_user(user_db, username=form_data.username, plain_pwd=form_data.password, exclude=["_id", "password"])
@@ -58,13 +58,13 @@ async def auth_token(
     """
     Log in using an access token.
     """
-    if await OAuthJWTBearer.is_jwt_in_blacklist(token.access_token, redis):
+    if await OAuthJWTBearer.is_jwt_in_blacklist(redis, jti=token.access_token):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token has been revoked."
         )
     
-    payload: dict = OAuthJWTBearer.decode(token.access_token)
+    payload = OAuthJWTBearer.decode(token.access_token)
     if not payload:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -77,8 +77,9 @@ async def auth_token(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid token."
         )
-        
-    if not await OAuthJWTBearer.add_jwt_to_blacklist(token.access_token, payload.get("exp"), redis):
+    
+    exp = payload.get("exp")
+    if not await OAuthJWTBearer.add_jwt_to_blacklist(redis, jti=token.access_token, exp=exp):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Failed deal with token."
@@ -98,12 +99,14 @@ async def auth_token(
 
 @router.post("/logout", dependencies=[Depends(get_current_user)])
 async def logout(
-        token: Annotated[Token, Header()]
+        token: Annotated[Token, Header()],
+        redis: Annotated[Redis, Depends(get_redis_client)]
     ):
     """
     Log out from user account.
     """
-    if not await OAuthJWTBearer.add_jwt_to_blacklist(jti=token.access_token):
+    exp = OAuthJWTBearer.decode(token.access_token).get("exp")
+    if not await OAuthJWTBearer.add_jwt_to_blacklist(redis, jti=token.access_token, exp=exp):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="An error occured while adding JWT to blacklist."
