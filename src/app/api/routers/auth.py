@@ -14,7 +14,7 @@ from core.db import MongoClient
 
 from core.logger import logger
 from core.config import settings
-from core.schemas.etc import Token
+from core.schemas.etc import Token, TokenPayload
 from core.security.jwt import OAuthJWTBearer
 from api.dependencies import (
     get_mongo_client,
@@ -25,7 +25,7 @@ import crud
 
 router = APIRouter(tags=["Authentication"])
 
-@router.post("/login", response_model=Token)
+@router.post("/login", response_model=TokenPayload)
 async def login_via_credentials(
         form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
         mongo: Annotated[MongoClient, Depends(get_mongo_client)],
@@ -36,19 +36,21 @@ async def login_via_credentials(
     """
     access_token = await redis.get(f"session:user:{form_data.username}")
     if access_token:
-        return Token(access_token=access_token) 
+        payload: dict = OAuthJWTBearer.decode(token=access_token)
+        return TokenPayload(access_token=access_token, role=payload.get("role"))
     user_db = mongo.get_database("users")
     user = await crud.authenticate_user(user_db, username=form_data.username, plain_pwd=form_data.password, exclude=["_id", "password"])
+    role, scope = user.get("role"), user.get("scopes")
     access_token = OAuthJWTBearer.encode(
-        payload={"sub": str(user.get("edbo_id")), "role": user.get("role"), "scope": form_data.scopes or user.get("scopes")})
+        payload={"sub": str(user.get("edbo_id")), "role": role, "scope": scope})
     try:
         await redis.setex(f"session:token:{access_token}", settings.JWT_EXPIRE_MIN * 60, json.dumps(user, default=str))
         await redis.setex(f"session:user:{form_data.username}", settings.JWT_EXPIRE_MIN * 60, access_token)
     except Exception as err:
         logger.error({"msg": "Failed adding `token` and `user` to Redis.", "detail": err})
-    return Token(access_token=access_token)
+    return TokenPayload(access_token=access_token, role=role)
 
-@router.post("/token", response_model=Token)
+@router.post("/token", response_model=TokenPayload)
 async def auth_token(
         token: Annotated[Token, Header(alias="Authorization")],
         redis: Annotated[Redis, Depends(get_redis_client)]
@@ -62,7 +64,7 @@ async def auth_token(
             detail="Token has been revoked."
         )
     
-    payload = OAuthJWTBearer.decode(token.access_token)
+    payload: dict = OAuthJWTBearer.decode(token.access_token)
     if not payload:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -81,15 +83,18 @@ async def auth_token(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Failed deal with token."
         )
+    
     refresh_token = await OAuthJWTBearer.refresh(payload)
-    username = payload.get("sub") 
+    username, role = payload.get("sub"), payload.get("role")
+    
     try:
         await redis.delete(f"session:token:{token.access_token}")
         await redis.delete(f"session:user:{username}")
     finally:
         await redis.setex(f"session:token:{refresh_token}", settings.JWT_EXPIRE_MIN * 60, user)
         await redis.setex(f"session:user:{username}", settings.JWT_EXPIRE_MIN * 60, refresh_token)
-    return Token(access_token=refresh_token)
+
+    return TokenPayload(access_token=refresh_token, role=role)
 
 @router.post("/logout", dependencies=[Depends(get_current_user)])
 async def logout(
