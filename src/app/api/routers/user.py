@@ -3,7 +3,6 @@ from fastapi import (
     HTTPException,
     APIRouter,
     status,
-    Security,
     Depends,
     Body
 )
@@ -82,32 +81,3 @@ async def password_recovery(
             detail="Couldn't find your account."
         )
     await crud.update_user(user_db, edbo_id=user["edbo_id"], update_doc={"password": Hash.hash(plain=body.new_password)})
-
-@router.get("/disciplines")
-async def get_user_disciplines(
-        user: Annotated[dict, Security(get_current_user, scopes=["student", "teacher"])],
-        mongo: Annotated[MongoClient, Depends(get_mongo_client)]
-    ):
-    """
-    Read the user's disciplines.
-    """
-    disciplines = {}
-    group_db = mongo.get_database("groups")
-    role = user["role"]
-    match role:
-        case "students":        
-            collection = group_db.get_collection(user["degree"])
-            group: dict = await collection.find_one({"group": user["group"]})
-            if not group:
-                raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Group not found"
-            )
-            user_db = mongo.get_database("users")
-            collection = user_db.get_collection("teachers")
-            for k, v in group.get("disciplines").items():
-                disciplines.update({k: TeacherBase(**await collection.find_one({"edbo_id": v}))})
-            return disciplines
-        case "teachers":
-            disciplines = user["disciplines"]
-    return disciplines

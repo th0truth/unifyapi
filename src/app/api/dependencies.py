@@ -44,18 +44,17 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"}
         )
     username = payload.get("sub")
-    user: dict = json.loads(await redis.get(f"session:token:{token}"))
+    user = json.loads(await redis.get(f"session:token:{token}"))
     if not user:
         user_db = mongo.get_database("users")
-        user_db.get_collection(name=payload["role"])
-        user = await crud.get_user_by_username(username=username)
+        user = await crud.get_user_by_username(user_db, username=username)
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Couldn't validate user credentials.",
                 headers={"WWW-Authenticate": "Bearer"}
             )
-    token_data = TokenData(edbo_id=user["edbo_id"], scopes=user["scopes"])
+    token_data = TokenData(edbo_id=user.get("edbo_id"), scopes=user.get("scopes"))
     if security_scopes.scopes:
         for scope in token_data.scopes:
             if scope not in security_scopes.scopes:

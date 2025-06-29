@@ -65,13 +65,12 @@ async def read_my_schedule(
             collection = schedule_db.get_collection(student.group)
             schedule_list = await collection.find({"group": student.group}).to_list()
             schedule = await get_user_schedule(mongo, student=student, schedule_list=schedule_list)
-            return schedule
         case "teachers":
             for name in await schedule_db.list_collection_names():
                 collection = schedule_db.get_collection(name) 
-                schedule = await collection.find({"teacher_edbo": user["edbo_id"]}).to_list()
+                schedule = await collection.find({"teacher_edbo": user.get("edbo_id")}).to_list()
                 if schedule: break
-            return schedule
+    return schedule
 
 @router.get("/{group}",
     response_model=List[ScheduleBase],

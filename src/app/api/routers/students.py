@@ -1,25 +1,26 @@
 from typing import Annotated, Optional, List
 from fastapi import (
-    HTTPException,
-    APIRouter,
-    status,
-    Security,
-    Depends,
-    Query,
-    Path,
-    Body
+  HTTPException,
+  APIRouter,
+  status,
+  Security,
+  Depends,
+  Query,
+  Path,
+  Body
 )
 
 from core.db import MongoClient
 
 from core.schemas.student import (
-    StudentBase,
-    StudentCreate
+  StudentBase,
+  StudentCreate
 )
 from core.schemas.grade import GradeBase
+from core.schemas.teacher import TeacherBase
 from api.dependencies import (
-    get_mongo_client,
-    get_current_user
+  get_mongo_client,
+  get_current_user
 )
 import crud
 
@@ -28,7 +29,7 @@ router = APIRouter(tags=["Students"])
 @router.post("/create",
     dependencies=[Security(get_current_user, scopes=["admin"])])
 async def create_student(
-        student_create: Annotated[StudentCreate, Body],
+        student_create: Annotated[StudentCreate, Body()],
         mongo: Annotated[MongoClient, Depends(get_mongo_client)] 
     ):
     """
@@ -48,18 +49,18 @@ async def create_student(
 @router.post("/group/{name}/all", response_model=List[StudentBase],
     dependencies=[Security(get_current_user, scopes=["teacher", "admin"])])
 async def read_students(
-        name: Annotated[str, Path],
+        name: Annotated[str, Path()],
         mongo: Annotated[MongoClient, Depends(get_mongo_client)]
     ) -> List[StudentBase]:
     """
-    Return a list of all existing students from the given group.
+    Fetch a list of all existing students from the given group.
     """
     user_db = mongo.get_database("users")
     return await crud.read_users(user_db, role="students", filter="group", value=name)
 
 @router.post("/grades/my")
 async def get_current_student_grades(
-        body: Annotated[GradeBase, Body],
+        body: Annotated[GradeBase, Body()],
         student: Annotated[dict, Security(get_current_user, scopes=["student"])],
         mongo: Annotated[MongoClient, Depends(get_mongo_client)]
     ):
@@ -73,7 +74,7 @@ async def get_current_student_grades(
 async def get_current_student_all_grades(
         student: Annotated[StudentBase, Security(get_current_user, scopes=["student"])],
         mongo: Annotated[MongoClient, Depends(get_mongo_client)],
-        date: Annotated[Optional[str], Query] = None
+        date: Annotated[Optional[str], Query()] = None
     ):
     """
     Fetch all grades for the current user.
@@ -85,12 +86,12 @@ async def get_current_student_all_grades(
     response_model_exclude_none = True,
     dependencies=[Security(get_current_user, scopes=["teacher", "admin"])])
 async def get_student_grades(
-        edbo_id: Annotated[int, Path],
-        body: Annotated[GradeBase, Body],
+        edbo_id: Annotated[int, Path()],
+        body: Annotated[GradeBase, Body()],
         mongo: Annotated[MongoClient, Depends(get_mongo_client)],
     ):
     """
-    Return the specified student's subject grades.
+    Fetch the specified student's subject grades.
     """
     user_db = mongo.get_database("users")
     collection = user_db.get_collection("students")
@@ -106,12 +107,12 @@ async def get_student_grades(
 @router.get("/grades/{edbo_id}/all",
     dependencies=[Security(get_current_user, scopes=["teacher", "admin"])])
 async def get_student_all_grades(
-        edbo_id: Annotated[int, Path],
+        edbo_id: Annotated[int, Path()],
         mongo: Annotated[MongoClient, Depends(get_mongo_client)],
         date: Annotated[Optional[str], Query] = None,
     ):
     """
-    Return all subject grades. 
+    Fetch all subject grades. 
     """
     user_db = mongo.get_database("users")
     collection = user_db.get_collection("students")
@@ -123,3 +124,28 @@ async def get_student_all_grades(
         )
     grade_db = mongo.get_database("grades")
     return await crud.get_grades(grade_db, edbo_id=edbo_id, group=student.group, date=date)
+
+@router.get("/disciplines")
+async def get_student_disciplines(
+  user: Annotated[dict, Security(get_current_user, scopes=["student"])],
+  mongo: Annotated[MongoClient, Depends(get_mongo_client)]
+):
+  """
+  Fetch the student's disciplines.
+  """
+  student = StudentBase.model_validate(user)
+  
+  disciplines = {}
+  group_db = mongo.get_database("groups")
+  collection = group_db.get_collection(student.degree)
+  group: dict = await collection.find_one({"group": student.group})
+  if not group:
+    raise HTTPException(
+      status_code=status.HTTP_404_NOT_FOUND,
+      detail="Group not found."
+    )
+  user_db = mongo.get_database("users")
+  collection = user_db.get_collection("teachers")
+  for k, v in group.get("disciplines").items():
+    disciplines.update({k: TeacherBase(**await collection.find_one({"edbo_id": v}))})
+  return disciplines
