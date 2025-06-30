@@ -5,7 +5,7 @@ from core.logger import logger
 from core.config import settings
 
 class RedisClient:
-    _istance: Optional["RedisClient"] = None
+    _instance: Optional["RedisClient"] = None
     _client: Optional[aioredis.Redis] = None
 
     @classmethod

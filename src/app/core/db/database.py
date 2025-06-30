@@ -29,7 +29,9 @@ class MongoClient:
 
     @classmethod
     async def connect(cls):
-        """Establish MongoDB connection."""
+        """
+        Establish MongoDB connection.
+        """
         try:
             cls._client = AsyncMongoClient(
                 f"mongodb+srv://{settings.MONGO_USERNAME}:{settings.MONGO_PASSWORD}@{settings.MONGO_HOSTNAME}.mongodb.net/{settings.MONGO_DATABASE}",
@@ -48,7 +50,9 @@ class MongoClient:
 
     @classmethod
     async def close(cls):
-        """Close MongoDB connection."""
+        """
+        Close MongoDB connection.
+        """
         if cls._client is not None:
             try:
                 await cls._client.aclose()

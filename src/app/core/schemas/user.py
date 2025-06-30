@@ -11,12 +11,12 @@ ROLE = Literal["students", "teachers", "admins"]
 DEGREE = Literal["bachelor", "skilled_worker"] 
 
 class UserBase(BaseModel):
-    edbo_id: int
-    first_name: str
-    middle_name: str
-    last_name: str 
-    date_of_birth: str
-    role: ROLE
+  edbo_id: int
+  first_name: str
+  middle_name: str
+  last_name: str 
+  date_of_birth: str
+  role: ROLE
 
 class UserPrivate(UserBase):
     acc_date: datetime

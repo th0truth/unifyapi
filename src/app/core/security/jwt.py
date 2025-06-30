@@ -16,13 +16,18 @@ class OAuthJWTBearer:
 
     @staticmethod
     def encode(payload: dict) -> str:
-        """
-        Encodes a given payload into a JWT.
-        """
-        payload.update(
-            {"exp": datetime.now(tz=timezone.utc) + timedelta(minutes=settings.JWT_EXPIRE_MIN),
-            "iat": datetime.now(tz=timezone.utc)})
-        return jwt.encode(payload=payload, key=settings.PRIVATE_KEY_PEM, algorithm=settings.JWT_ALGORITHM)
+      """Encodes a given payload into a JWT,
+
+      Args:
+          payload (dict): 
+
+      Returns:
+        str: Token
+      """
+      payload.update(
+          {"exp": datetime.now(tz=timezone.utc) + timedelta(minutes=settings.JWT_EXPIRE_MIN),
+          "iat": datetime.now(tz=timezone.utc)})
+      return jwt.encode(payload=payload, key=settings.PRIVATE_KEY_PEM, algorithm=settings.JWT_ALGORITHM)
     
     @staticmethod
     def decode(token: str) -> Optional[dict]:

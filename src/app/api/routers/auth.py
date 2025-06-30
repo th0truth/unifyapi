@@ -37,7 +37,7 @@ async def login(
     access_token = await redis.get(f"session:user:{form_data.username}")
     if access_token:
         payload = OAuthJWTBearer.decode(token=access_token)
-        return TokenPayload(access_token=access_token, role=payload.get("role"))
+        if payload: return TokenPayload(access_token=access_token, role=payload.get("role"))
     user_db = mongo.get_database("users")
     user = await crud.authenticate_user(user_db, username=form_data.username, plain_pwd=form_data.password, exclude=["_id", "password"])
     role, scope = user.get("role"), user.get("scopes")

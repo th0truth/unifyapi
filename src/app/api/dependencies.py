@@ -20,7 +20,7 @@ async def get_mongo_client() -> AsyncGenerator[MongoClient, None]:
         await MongoClient.connect()
     yield MongoClient._client
 
-async def get_redis_client() -> AsyncGenerator[Redis, None]:
+async def get_redis_client() -> AsyncGenerator[RedisClient, None]:
     """Dependency to get Redis client."""
     if not RedisClient._client:
         await RedisClient.connect()
@@ -33,8 +33,8 @@ oauth2_scheme = OAuth2PasswordBearer(
 async def get_current_user(
     security_scopes: SecurityScopes,
     token: Annotated[str, Depends(oauth2_scheme)],
-    mongo: Annotated[MongoClient, Depends(get_mongo_client)],
-    redis: Annotated[Redis, Depends(get_redis_client)]
+    redis: Annotated[Redis, Depends(get_redis_client)],
+    mongo: Annotated[MongoClient, Depends(get_mongo_client)]
 ) -> dict:
     payload = OAuthJWTBearer.decode(token=token)
     if not payload:
