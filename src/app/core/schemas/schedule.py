@@ -1,29 +1,22 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional
 
+from uuid import UUID
+
 class ScheduleBase(BaseModel):
-    teacher: Optional[dict] = None
-    name: str
-    lesson_id: str
-    position: int
-    classroom: int
-    date: str
-    topic: str
-    homework: str
-    grade: Optional[int] = None
+  subject: str
+  position: int
+  classroom: int
+  date: str
+  topic: str
+  homework: str
 
-class ScheduleTeacher(BaseModel):
-    edbo_id: int
-    first_name: str
-    middle_name: str
-    last_name: str
-    specialities: list
-    disciplines: list
+class ScheduleCreate(ScheduleBase):
+  group: str
+  date: str
 
-class ScheduleCreate(BaseModel):
-    group: str
-    name: str
-    position: int
-    classroom: int
-    topic: str
-    homework: str
+class SchedulePrivate(ScheduleCreate):
+  teacher: Optional[dict] = None
+  teacher_edbo: Optional[int] = None
+  grade: Optional[int] = None
+  subject_id: str

@@ -1,4 +1,4 @@
-from typing import Annotated, Optional, List
+from typing import Annotated, List
 from fastapi import (
   HTTPException,
   APIRouter,
@@ -6,20 +6,18 @@ from fastapi import (
   Security,
   Depends,
   Path,
-  Body,
-  Query
+  Body
 )
-from datetime import datetime
-import uuid
+from uuid import uuid4
 
 from core.db import MongoClient
 
-from core.schemas.user import UserBase
 from core.schemas.student import StudentBase
 from core.schemas.teacher import TeacherBase
 from core.schemas.schedule import (
   ScheduleBase,
-  ScheduleCreate
+  ScheduleCreate,
+  SchedulePrivate
 )
 from api.dependencies import (
   get_mongo_client,
@@ -31,156 +29,140 @@ router = APIRouter(tags=["Schedule"])
 
 @router.get("/my",
   status_code=status.HTTP_200_OK,
-  # response_model=list[ScheduleBase],
+  response_model=list[SchedulePrivate],
   response_model_exclude_none=True)
 async def get_current_user_schedule(
   user: Annotated[dict, Security(get_current_user, scopes=["student", "teacher"])],
   mongo: Annotated[MongoClient, Depends(get_mongo_client)]
-): 
+):
+  """
+  Fetch a schedule for the current user. 
+  """
   schedule_db = mongo.get_database("schedule")
   match user.get("role"):
     case "students":
       student = StudentBase.model_validate(user) 
       collection = schedule_db.get_collection(student.group)
+      schedule = await collection.find().to_list()
 
+      grades_db = mongo.get_database("grades")
+      grades_doc = await crud.get_grades(grades_db, edbo_id=student.edbo_id, group=student.group)
+      
+      user_db = mongo.get_database("users")
+      collection = user_db.get_collection("teachers")
+      for subject in schedule:
+        teacher = await collection.find_one({"edbo_id": subject.pop("teacher_edbo")})
+        subject.update(
+          {"teacher": TeacherBase.model_validate(teacher).model_dump(),
+           "grade": grades_doc.get(subject["subject"], {}).get(subject["date"])})
+      return schedule
 
+    case "teachers":
+      teacher = TeacherBase.model_validate(user)
+      for group in await schedule_db.list_collection_names():
+        collection = schedule_db.get_collection(group)
+        schedule = await collection.find({"teacher_edbo": teacher.edbo_id}).to_list()
+        if schedule: break
+      return schedule
 
+@router.get("/{group}",
+  status_code=status.HTTP_200_OK,
+  response_model=List[ScheduleBase],
+  response_model_exclude_none=True,                
+  dependencies=[Security(get_current_user, scopes=["teacher", "admin"])])
+async def get_schedule_by_group(
+  group: Annotated[str, Path()],
+  mongo: Annotated[MongoClient, Depends(get_mongo_client)]
+):
+  """
+  Fetch a schedule for the given group. 
+  """
+  schedule_db = mongo.get_database("schedule")
+  collection = schedule_db.get_collection(group)
+  schedule = await collection.find().to_list()
+  return schedule
+
+@router.get("/{group}/{id}", 
+  status_code=status.HTTP_200_OK,
+  response_model=ScheduleBase,
+  response_model_exclude_none=True,
+  dependencies=[Security(get_current_user, scopes=["teacher", "admin"])])
+async def get_schedule_by_id(
+  group: Annotated[str, Path()],
+  id: Annotated[str, Path()],
+  mongo: Annotated[MongoClient, Depends(get_mongo_client)]
+):
+  """
+  Fetch the schedule for the given group with a id.
+  """
+  schedule_db = mongo.get_database("schedule")
+  collection = schedule_db.get_collection(group)
+  subject = await collection.find_one({"subject_id": id})
+  if not subject:
+    raise HTTPException(
+      status_code=status.HTTP_404_NOT_FOUND,
+      detail="Subject not found."
+    )
+  return subject
+
+@router.post("/create",
+  status_code=status.HTTP_201_CREATED,
+  response_model=ScheduleBase,
+  response_model_exclude_none=True)
+async def create_schedule(
+  schedule: Annotated[ScheduleCreate, Body()],
+  user: Annotated[dict, Security(get_current_user, scopes=["teacher"])],
+  mongo: Annotated[MongoClient, Depends(get_mongo_client)],
+):
+  """
+  Create a schedule for the given group.
+  """
+  teacher = TeacherBase.model_validate(user)
+  groups_db = mongo.get_database("groups")
+
+  for degree in await groups_db.list_collection_names():
+    collection = groups_db.get_collection(degree)
+    group = await collection.find_one({"group": schedule.group})
+    if group: break
   
-  # role = user.get("role")
-  # match role:
-    # case "students":
+  if not group:
+    raise HTTPException(
+      status_code=status.HTTP_404_NOT_FOUND,
+      detail="Given group not found."
+    )
+  
+  if schedule.subject not in teacher.disciplines:
+    raise HTTPException(
+      status_code=status.HTTP_403_FORBIDDEN,
+      detail="You don't have access to this discipline."
+    )
+
+  schedule_db = mongo.get_database("schedule")
+  collection = schedule_db.get_collection(schedule.group)
+  
+  schedule_private = SchedulePrivate(
+    **schedule.model_dump(),
+    teacher_edbo=teacher.edbo_id,
+    subject_id=str(uuid4())
+  )
+
+  await collection.insert_one(
+    schedule_private.model_dump()
+  )
+
+  return schedule
+
+@router.patch("/update",
+  status_code=status.HTTP_200_OK)
+async def update_schedule(
+  group: Annotated[str, Path()],
+  id: Annotated[str, Path()],
+):
+  """
+  Update 
+  """
 
 
-
-# async def get_user_schedule(
-#         mongo: MongoClient,
-#         *,
-#         student: StudentBase,
-#         schedule_list: list
-#     ) -> dict:
-
-#     grades_db = mongo.get_database("grades")
-#     grades_doc = await crud.get_grades(grades_db, edbo_id=student.edbo_id, group=student.group)
-#     user_db = mongo.get_database("users")
-#     collection = user_db.get_collection("teachers")
-#     for lesson in schedule_list:
-#         teacher = await collection.find_one({"edbo_id": lesson.pop("teacher_edbo")})
-#         lesson.update(
-#             {"teacher": TeacherBase(**teacher).model_dump(),
-#              "grade": grades_doc.get(lesson["name"], {}).get(lesson["date"])}
-#         )
-#     return schedule_list
-
-# @router.get("/my",
-#     response_model=list[ScheduleBase],
-#     response_model_exclude_none=True)
-# async def read_my_schedule(
-#         user: Annotated[dict, Security(get_current_user, scopes=["student", "teacher"])],
-#         mongo: Annotated[MongoClient, Depends(get_mongo_client)]
-#     ):
-#     """
-#     Return the schedule for the current user. 
-#     """
-#     schedule_db = mongo.get_database("schedule")
-#     role = user.get("role")
-#     match role:
-#         case "students":
-#             student = StudentBase(**user)
-#             collection = schedule_db.get_collection(student.group)
-#             schedule_list = await collection.find({"group": student.group}).to_list()
-#             schedule = await get_user_schedule(mongo, student=student, schedule_list=schedule_list)
-#         case "teachers":
-#             for name in await schedule_db.list_collection_names():
-#                 collection = schedule_db.get_collection(name) 
-#                 schedule = await collection.find({"teacher_edbo": user.get("edbo_id")}).to_list()
-#                 if schedule: break
-#     return schedule
-
-# @router.get("/{group}",
-#     response_model=List[ScheduleBase],
-#     response_model_exclude_none=True,                
-#     dependencies=[Security(get_current_user, scopes=["teacher", "admin"])])
-# async def read_group_schedule(
-#         group: Annotated[str, Path],
-#         mongo: Annotated[MongoClient, Depends(get_mongo_client)]
-#     ):
-#     """
-#     Return the schedule for the given group. 
-#     """
-#     schedule_db = mongo.get_database("schedule")
-#     collection = schedule_db.get_collection(group)
-#     schedule = await collection.find().to_list()
-#     if not schedule:
-#         raise HTTPException(
-#             status_code=status.HTTP_404_NOT_FOUND,
-#             detail="Group schedule not found."
-#         )
-#     return schedule
-
-# @router.get("/{group}/{id}",
-#     response_model=ScheduleBase,
-#     response_model_exclude_none=True,
-#     dependencies=[Security(get_current_user, scopes=["teacher", "admin"])])
-# async def read_schedule_by_id(
-#         group: Annotated[str, Path],
-#         id: Annotated[str, Path],
-#         mongo: Annotated[MongoClient, Depends(get_mongo_client)]
-#     ):
-#     """
-#     Return the schedule for the given group with a unique id. 
-#     """
-#     schedule_db = mongo.get_database("schedule")
-#     collection = schedule_db.get_collection(group)
-#     lesson = await collection.find_one({"lesson_id": id})
-#     if not lesson:
-#         raise HTTPException(
-#             status_code=status.HTTP_404_NOT_FOUND,
-#             detail="Lesson not found."
-#         )
-#     return lesson
-
-# @router.post("/create")
-# async def create_schedule(
-#     schedule: Annotated[ScheduleCreate, Body],
-#     user: Annotated[dict, Security(get_current_user, scopes=["teacher"])],
-#     mongo: Annotated[MongoClient, Depends(get_mongo_client)],
-#     date: Annotated[Optional[str], Query] = None,
-# ):
-#     """
-#     Create a schedule for the group.
-#     """
-#     teacher = TeacherBase(**user)
-#     group_db = mongo.get_database("groups")
-#     for _name in await group_db.list_collection_names():
-#         collection = group_db.get_collection(_name)
-#         group = await collection.find_one({"group": schedule.group})
-#         if group: break
-#     if not group:
-#         raise HTTPException(
-#             status_code=status.HTTP_404_NOT_FOUND,
-#             detail="The group not found."
-#         )
-#     if schedule.name not in teacher.disciplines:
-#         raise HTTPException(
-#             status_code=status.HTTP_403_FORBIDDEN,
-#             detail="You don't have access to this discipline."
-#         )
-
-#     schedule_db = mongo.get_database("schedule")
-#     collection = schedule_db.get_collection(schedule.group)
-#     await collection.insert_one(
-#         {
-#             "lesson_id": str(uuid.uuid4()),
-#             "teacher_edbo": teacher.edbo_id,
-#             "date": date if date else datetime.now().strftime("%d-%m-%Y"),
-#             **schedule.model_dump()
-#         }
-#     )
-#     raise HTTPException(
-#         status_code=status.HTTP_201_CREATED,
-#         detail="Lesson created successfully."
-#     )
-
-# @router.patch("/update")
-# async def update_schedule():
-#   pass 
+@router.delete("/delete")
+async def delete_schedule():
+  pass

@@ -35,8 +35,39 @@ async def get_disciplines(
     )
     return group
 
+
+@router.post("/create",
+    dependencies=[Security(get_current_user, scopes=["admin"])])
+async def create_group(
+        body: Annotated[GroupCreate, Body],
+        mongo: Annotated[MongoClient, Depends(get_mongo_client)]
+    ):
+    """
+    Create the student group.
+    """
+    group_db = mongo.get_database("groups")
+    collections = await group_db.list_collection_names()
+    if body.degree not in collections:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Group degree not found."
+        )
+    for _name in collections: 
+        collection = group_db.get_collection(_name)
+        if await collection.find_one({"group": body.group}):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Group already exits."
+            )
+    collection = group_db.get_collection(body.degree)
+    await collection.insert_one(body.model_dump())
+    raise HTTPException(
+        status_code=status.HTTP_201_CREATED,
+        detail="Group created successfully."
+    )
+
 @router.get("/read/my", response_model=GroupBase)
-async def read_my_group(
+async def get_current_user_group(
         user: Annotated[dict, Security(get_current_user, scopes=["student", "teacher"])],
         mongo: Annotated[MongoClient, Depends(get_mongo_client)]
     ):
@@ -70,7 +101,7 @@ async def read_my_group(
 
 @router.post("/read", response_model=GroupBase,
     dependencies=[Security(get_current_user, scopes=["teacher", "admin"])])
-async def read_group(
+async def get_group(
         name: Annotated[str, Body],
         mongo: Annotated[MongoClient, Depends(get_mongo_client)]
     ):
@@ -105,36 +136,6 @@ async def read_groups(
         group_list = await collection.find().to_list()
         groups.update({_name: group_list})
     return groups
-
-@router.post("/create",
-    dependencies=[Security(get_current_user, scopes=["admin"])])
-async def create_group(
-        body: Annotated[GroupCreate, Body],
-        mongo: Annotated[MongoClient, Depends(get_mongo_client)]
-    ):
-    """
-    Create the student group.
-    """
-    group_db = mongo.get_database("groups")
-    collections = await group_db.list_collection_names()
-    if body.degree not in collections:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Group degree not found."
-        )
-    for _name in collections: 
-        collection = group_db.get_collection(_name)
-        if await collection.find_one({"group": body.group}):
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="Group already exits."
-            )
-    collection = group_db.get_collection(body.degree)
-    await collection.insert_one(body.model_dump())
-    raise HTTPException(
-        status_code=status.HTTP_201_CREATED,
-        detail="Group created successfully."
-    )
  
 @router.delete("/delete",
     dependencies=[Security(get_current_user, scopes=["admin"])])

@@ -34,15 +34,15 @@ async def create_teacher(
     user_db = mongo.get_database("users")
     return await crud.create_user(user_db, user=teacher_create)
 
-@router.patch("/set-grade/{edbo_id}")
-async def set_grade(
+@router.patch("/assessment/{edbo_id}/grade")
+async def assessment_grade(
         edbo_id: Annotated[int, Path],
         body: Annotated[SetGrade, Body],
         teacher: Annotated[dict, Security(get_current_user, scopes=["teacher"])],
         mongo: Annotated[MongoClient, Depends(get_mongo_client)]
     ):
     """
-    Set given student grade.
+    Assess the student
     """
     if body.subject not in teacher["disciplines"]:
         raise HTTPException(
