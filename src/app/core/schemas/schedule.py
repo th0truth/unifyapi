@@ -1,7 +1,9 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from typing import Optional
 
-from uuid import UUID
+from .teacher import TeacherBase
+from bson import ObjectId
+from typing import Any
 
 class ScheduleBase(BaseModel):
   subject: str
@@ -16,7 +18,7 @@ class ScheduleCreate(ScheduleBase):
   date: str
 
 class SchedulePrivate(ScheduleCreate):
-  teacher: Optional[dict] = None
+  teacher: Optional[TeacherBase] = None 
   teacher_edbo: Optional[int] = None
   grade: Optional[int] = None
-  subject_id: str
+  lesson_id: str
