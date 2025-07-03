@@ -1,8 +1,8 @@
 from typing import Annotated, AsyncGenerator
 from fastapi import Depends, HTTPException, status
 from fastapi.security import (
-    OAuth2PasswordBearer,
-    SecurityScopes
+  OAuth2PasswordBearer,
+  SecurityScopes
 )
 from redis.asyncio import Redis
 import json
@@ -15,51 +15,54 @@ from core.schemas.etc import TokenData
 import crud
 
 async def get_mongo_client() -> AsyncGenerator[MongoClient, None]:
-    """Dependency to get MongoDB client."""
-    if not MongoClient._client:
-        await MongoClient.connect()
-    yield MongoClient._client
+  """Dependency to get MongoDB client."""
+  if not MongoClient._client:
+    await MongoClient.connect()
+  yield MongoClient._client
 
 async def get_redis_client() -> AsyncGenerator[RedisClient, None]:
-    """Dependency to get Redis client."""
-    if not RedisClient._client:
-        await RedisClient.connect()
-    yield RedisClient._client
+  """Dependency to get Redis client."""
+  if not RedisClient._client:
+    await RedisClient.connect()
+  yield RedisClient._client
 
 oauth2_scheme = OAuth2PasswordBearer(
-    tokenUrl=f"{settings.API_V1_STR}/auth/login",
-    scopes=settings.scopes)
+  tokenUrl=f"{settings.API_V1_STR}/auth/login",
+  scopes=settings.scopes
+)
 
 async def get_current_user(
-    security_scopes: SecurityScopes,
-    token: Annotated[str, Depends(oauth2_scheme)],
-    redis: Annotated[Redis, Depends(get_redis_client)],
-    mongo: Annotated[MongoClient, Depends(get_mongo_client)]
+  security_scopes: SecurityScopes,
+  token: Annotated[str, Depends(oauth2_scheme)],
+  redis: Annotated[Redis, Depends(get_redis_client)],
+  mongo: Annotated[MongoClient, Depends(get_mongo_client)]
 ) -> dict:
-    payload = OAuthJWTBearer.decode(token=token)
-    if not payload:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Couldn't validate user credentials.",
-            headers={"WWW-Authenticate": "Bearer"}
-        )
-    username = payload.get("sub")
-    user = json.loads(await redis.get(f"session:token:{token}"))
+  payload = OAuthJWTBearer.decode(token=token)
+  if not payload:
+    raise HTTPException(
+      status_code=status.HTTP_404_NOT_FOUND,
+      detail="Couldn't validate user credentials.",
+      headers={"WWW-Authenticate": "Bearer"}
+    )
+  username = payload.get("sub")
+  user_redis = await redis.get(f"session:token:{token}")
+  if not user_redis:
+    users_db = mongo.get_database("users")
+    user = await crud.get_user_by_username(users_db, username=username, exclude=["_id"])
     if not user:
-        user_db = mongo.get_database("users")
-        user = await crud.get_user_by_username(user_db, username=username)
-        if not user:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Couldn't validate user credentials.",
-                headers={"WWW-Authenticate": "Bearer"}
-            )
-    token_data = TokenData(edbo_id=user.get("edbo_id"), scopes=user.get("scopes"))
-    if security_scopes.scopes:
-        for scope in token_data.scopes:
-            if scope not in security_scopes.scopes:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="Not enough permissions"
-                )
-    return user
+      raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Couldn't validate user credentials.",
+        headers={"WWW-Authenticate": "Bearer"}
+      )
+  else:
+    user = json.loads(user_redis)
+  token_data = TokenData(edbo_id=user.get("edbo_id"), scopes=user.get("scopes"))
+  if security_scopes.scopes:
+    for scope in token_data.scopes:
+      if scope not in security_scopes.scopes:
+        raise HTTPException(
+          status_code=status.HTTP_404_NOT_FOUND,
+          detail="Not enough permissions"
+        )
+  return user

@@ -2,8 +2,6 @@ from pydantic import BaseModel
 from typing import Optional
 
 from .teacher import TeacherBase
-from bson import ObjectId
-from typing import Any
 
 class ScheduleBase(BaseModel):
   subject: str

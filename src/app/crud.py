@@ -13,6 +13,7 @@ async def get_user_by_username(
         db: AsyncDatabase,
         *,
         username: int | str,
+        exclude: Optional[list] = None
     ) -> dict:
     """
     Find user by `username`. 
@@ -22,6 +23,9 @@ async def get_user_by_username(
         user = await collection.find_one(
             {"edbo_id": int(username)} if isinstance(username, int) or username.isdigit() else {"email": username}) 
         if user: break
+    if exclude:
+      for key in exclude:
+        user.pop(key)
     return user
 
 async def create_user(
@@ -142,7 +146,7 @@ async def authenticate_user(
         *,
         username: str | int,
         plain_pwd: str,
-        exclude: Optional[list] = None 
+        exclude: Optional[list] = None
     ) -> dict:
     """
     Authenticate user credentials.
@@ -162,8 +166,8 @@ async def authenticate_user(
                 detail="Invalid user credentials."
             )
     if exclude:
-        for key in exclude:
-            user.pop(key)        
+      for key in exclude:
+        user.pop(key) 
     return user
 
 async def get_grades(
