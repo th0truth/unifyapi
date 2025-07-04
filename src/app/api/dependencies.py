@@ -11,7 +11,7 @@ from core.config import settings
 
 from core.security.jwt import OAuthJWTBearer
 from core.db import MongoClient, RedisClient
-from core.schemas.etc import TokenData
+from core.schemas.token import TokenData
 import crud
 
 async def get_mongo_client() -> AsyncGenerator[MongoClient, None]:
@@ -37,28 +37,41 @@ async def get_current_user(
   redis: Annotated[Redis, Depends(get_redis_client)],
   mongo: Annotated[MongoClient, Depends(get_mongo_client)]
 ) -> dict:
+  # Decode a user's JWT
   payload = OAuthJWTBearer.decode(token=token)
   if not payload:
     raise HTTPException(
-      status_code=status.HTTP_404_NOT_FOUND,
+      status_code=status.HTTP_401_UNAUTHORIZED,
       detail="Couldn't validate user credentials.",
       headers={"WWW-Authenticate": "Bearer"}
     )
-  username = payload.get("sub")
-  user_redis = await redis.hget(f"session:token:{token}", username)
-  print(user_redis)
-  if not user_redis:
+  
+  # Get data from the payload   
+  username, jti = payload.get("sub"), payload.get("jti")
+  
+  # Check if jti is revoked
+  if await OAuthJWTBearer.is_jti_in_blacklist(redis, jti=jti):
+    raise HTTPException(
+      status_code=status.HTTP_401_UNAUTHORIZED,
+      detail="Token has been revoked."
+    )
+  
+  if not (user_cache := await redis.get(f"auth:user:{username}")):
+    # Authenticate user data from the MongoDB database
     users_db = mongo.get_database("users")
-    user = await crud.get_user_by_username(users_db, username=username, exclude=["_id"])
-    if not user:
+    # Validate user credentials
+    if not (user := await crud.get_user_by_username(users_db, username=username, exclude=["_id"])):
       raise HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Couldn't validate user credentials.",
         headers={"WWW-Authenticate": "Bearer"}
       )
   else:
-    user = json.loads(user_redis)
+    user = json.loads(user_cache)
+
   token_data = TokenData(edbo_id=user.get("edbo_id"), scopes=user.get("scopes"))
+  
+  # Check a user's privileges 
   if security_scopes.scopes:
     for scope in token_data.scopes:
       if scope not in security_scopes.scopes:

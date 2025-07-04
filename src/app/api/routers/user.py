@@ -11,7 +11,6 @@ from core.db import MongoClient
 
 from core.security.utils import Hash
 from core.schemas.user import UserUpdateEmail
-from core.schemas.teacher import TeacherBase
 from core.schemas.etc import (
     UpdatePassword,
     PasswordRecovery

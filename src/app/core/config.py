@@ -42,8 +42,8 @@ class Settings(BaseSettings):
   REDIS_USERNAME: str
   REDIS_PASSWORD: str
   REDIS_DB: int = 0
-
-  SESSION_TIMEOUT_MINUTES: int | float
+  
+  CACHE_EXPIRE_MINUTES: int | float
   
   # JWT settings
   JWT_ALGORITHM: str = "RS256"
