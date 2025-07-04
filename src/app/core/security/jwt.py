@@ -25,7 +25,7 @@ class OAuthJWTBearer:
         str: Token
       """
       payload.update(
-          {"exp": datetime.now(tz=timezone.utc) + timedelta(minutes=settings.JWT_EXPIRE_MIN),
+          {"exp": datetime.now(tz=timezone.utc) + timedelta(minutes=settings.JWT_EXPIRE_MINUTES),
           "iat": datetime.now(tz=timezone.utc)})
       return jwt.encode(payload=payload, key=settings.PRIVATE_KEY_PEM, algorithm=settings.JWT_ALGORITHM)
     
@@ -45,7 +45,7 @@ class OAuthJWTBearer:
         Refreshes the claims of a JWT, updating expiry time.
         """
         payload.update(
-            {"exp": datetime.now(tz=timezone.utc) + timedelta(minutes=settings.JWT_EXPIRE_MIN)})
+            {"exp": datetime.now(tz=timezone.utc) + timedelta(minutes=settings.JWT_EXPIRE_MINUTES)})
         return jwt.encode(payload=payload, key=settings.PRIVATE_KEY_PEM, algorithm=settings.JWT_ALGORITHM)
 
     @staticmethod

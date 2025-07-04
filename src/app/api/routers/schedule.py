@@ -157,7 +157,7 @@ async def get_schedule_by_id(
     )
   return lesson
 
-@router.put("/update/{group}/{id}",
+@router.put("/{group}/{id}/update",
   status_code=status.HTTP_200_OK,
   response_model=ScheduleBase)
 async def update_schedule(
@@ -196,7 +196,7 @@ async def update_schedule(
   
   return schedule_update
 
-@router.delete("/delete/{group}/{id}",
+@router.delete("/{group}/{id}/delete",
   status_code=status.HTTP_200_OK,
   dependencies=[Security(get_current_user, scopes=["teacher", "admin"])])
 async def delete_schedule(

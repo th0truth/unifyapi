@@ -45,7 +45,8 @@ async def get_current_user(
       headers={"WWW-Authenticate": "Bearer"}
     )
   username = payload.get("sub")
-  user_redis = await redis.get(f"session:token:{token}")
+  user_redis = await redis.hget(f"session:token:{token}", username)
+  print(user_redis)
   if not user_redis:
     users_db = mongo.get_database("users")
     user = await crud.get_user_by_username(users_db, username=username, exclude=["_id"])

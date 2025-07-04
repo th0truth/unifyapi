@@ -1,11 +1,12 @@
 from typing import Annotated
+from datetime import timedelta
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi import (
-    HTTPException,
-    APIRouter,
-    status,
-    Depends,
-    Header,
+  HTTPException,
+  APIRouter,
+  status,
+  Depends,
+  Header,
 )
 import json
 
@@ -17,9 +18,9 @@ from core.config import settings
 from core.schemas.etc import Token, TokenPayload
 from core.security.jwt import OAuthJWTBearer
 from api.dependencies import (
-    get_mongo_client,
-    get_redis_client,
-    get_current_user
+  get_mongo_client,
+  get_redis_client,
+  get_current_user
 )
 import crud
 
@@ -27,29 +28,37 @@ router = APIRouter(tags=["Authentication"])
 
 @router.post("/login", response_model=TokenPayload)
 async def login(
-        form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
-        mongo: Annotated[MongoClient, Depends(get_mongo_client)],
-        redis: Annotated[Redis, Depends(get_redis_client)] 
-    ):
-    """
-    Log in using user credentials.
-    """
-    access_token = await redis.get(f"session:user:{form_data.username}")
-    if access_token:
-        payload = OAuthJWTBearer.decode(token=access_token)
-        if payload: return TokenPayload(access_token=access_token, role=payload.get("role"))
-    user_db = mongo.get_database("users")
-    user = await crud.authenticate_user(user_db, username=form_data.username, plain_pwd=form_data.password, exclude=["_id", "password"])
-    print(user)
-    role, scope = user.get("role"), user.get("scopes")
-    access_token = OAuthJWTBearer.encode(
-        payload={"sub": str(user.get("edbo_id")), "role": role, "scope": scope})
-    try:
-        await redis.setex(f"session:token:{access_token}", settings.JWT_EXPIRE_MIN * 60, json.dumps(user, default=str))
-        await redis.setex(f"session:user:{form_data.username}", settings.JWT_EXPIRE_MIN * 60, access_token)
-    except Exception as err:
-        logger.error({"msg": "Failed adding `token` and `user` to Redis.", "detail": err})
-    return TokenPayload(access_token=access_token, role=role)
+  form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
+  mongo: Annotated[MongoClient, Depends(get_mongo_client)],
+  redis: Annotated[Redis, Depends(get_redis_client)] 
+):
+  """
+  Log in using user credentials.
+  """
+  # access_token = await redis.hget(f"session:user:{form_data.username}")
+  # if access_token:
+    # payload = OAuthJWTBearer.decode(token=access_token)
+    # if payload: return TokenPayload(access_token=access_token, role=payload.get("role"))
+  
+
+  users_db = mongo.get_database("users")
+  # Authenticate user data from the MongoDB database
+  user = await crud.authenticate_user(users_db, username=form_data.username, plain_pwd=form_data.password, exclude=["_id", "password"])
+  role, scope, edbo_id = user.get("role"), user.get("scopes"), user.get("edbo_id")
+  access_token = OAuthJWTBearer.encode(
+    payload={"sub": str(user.get("edbo_id")), "role": role, "scope": scope})
+
+  # Store user credentials in Redis session
+  await redis.hset(f"session:token:{access_token}", mapping=user)
+  await redis.expire(f"session:token:{access_token}", timedelta(minutes=settings.SESSION_TIMEOUT_MINUTES))
+  
+  return TokenPayload(access_token=access_token, role=role)
+  
+    # try:
+        # await redis.setex(f"session:token:{access_token}", settings.JWT_EXPIRE_MINUTES * 60, json.dumps(user, default=str))
+        # await redis.setex(f"session:user:{form_data.username}", settings.JWT_EXPIRE_MINUTES * 60, access_token)
+    # except Exception as err:
+        # logger.error({"msg": "Failed adding `token` and `user` to Redis.", "detail": err})
 
 @router.post("/token", response_model=TokenPayload)
 async def auth_token(
@@ -93,8 +102,8 @@ async def auth_token(
         await redis.delete(f"session:token:{token.access_token}")
         await redis.delete(f"session:user:{username}")
     finally:
-        await redis.setex(f"session:token:{refresh_token}", settings.JWT_EXPIRE_MIN * 60, user)
-        await redis.setex(f"session:user:{username}", settings.JWT_EXPIRE_MIN * 60, refresh_token)
+        await redis.setex(f"session:token:{refresh_token}", timedelta(minutes=settings.JWT_EXPIRE_MINUTES), user)
+        await redis.setex(f"session:user:{username}", timedelta(minutes=settings.JWT_EXPIRE_MINUTES), refresh_token)
 
     return TokenPayload(access_token=refresh_token, role=role)
 
